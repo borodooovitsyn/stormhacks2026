@@ -2,6 +2,17 @@
 
 from __future__ import annotations
 
+import subprocess
+from dataclasses import dataclass
+from typing import Callable
+
+
+@dataclass
+class SandboxResult:
+    ok: bool
+    stdout: str
+    stderr: str
+
 
 def build_docker_command(image: str, input_dir: str, output_dir: str, *, gpus: bool = True) -> list[str]:
     cmd = [
@@ -16,3 +27,16 @@ def build_docker_command(image: str, input_dir: str, output_dir: str, *, gpus: b
         cmd += ["--gpus", "all"]
     cmd.append(image)
     return cmd
+
+
+def run_in_sandbox(
+    image: str,
+    input_dir: str,
+    output_dir: str,
+    *,
+    gpus: bool = True,
+    run: Callable = subprocess.run,
+) -> SandboxResult:
+    cmd = build_docker_command(image, input_dir, output_dir, gpus=gpus)
+    proc = run(cmd, capture_output=True, text=True)
+    return SandboxResult(ok=proc.returncode == 0, stdout=proc.stdout, stderr=proc.stderr)
