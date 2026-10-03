@@ -1,5 +1,5 @@
-from fastapi.testclient import TestClient
 from base58 import b58encode
+from fastapi.testclient import TestClient
 from nacl.signing import SigningKey
 
 from services.api.app.main import app

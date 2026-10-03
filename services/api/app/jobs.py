@@ -6,15 +6,15 @@ teams a real state machine while the persistent scheduler can still land later.
 
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Lock
 from urllib.parse import quote
-import secrets
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def chunk_ranges(total_units: int, requested_chunks: int) -> list[tuple[int, int]]:

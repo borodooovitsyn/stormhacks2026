@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, time, timezone
+from datetime import UTC, datetime, time
 from decimal import Decimal
-import os
 from threading import Lock
 from typing import Any
 
@@ -34,7 +34,7 @@ class MetricRecord:
 
 def normalize_ts(value: datetime | str | None) -> datetime:
     if value is None:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     if isinstance(value, datetime):
         ts = value
@@ -45,8 +45,8 @@ def normalize_ts(value: datetime | str | None) -> datetime:
         ts = datetime.fromisoformat(raw)
 
     if ts.tzinfo is None:
-        return ts.replace(tzinfo=timezone.utc)
-    return ts.astimezone(timezone.utc)
+        return ts.replace(tzinfo=UTC)
+    return ts.astimezone(UTC)
 
 
 class MetricsRepository:
@@ -114,35 +114,33 @@ class MetricsRepository:
         if conn is None:
             return
 
-        with conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     INSERT INTO gpu_metrics (
                         ts, worker_id, job_id, gpu_util_pct, vram_used_mb, cost_usd
                     )
                     VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                    (
-                        record.ts,
-                        record.worker_id,
-                        record.job_id,
-                        record.gpu_util_pct,
-                        record.vram_used_mb,
-                        record.cost_usd,
-                    ),
-                )
+                (
+                    record.ts,
+                    record.worker_id,
+                    record.job_id,
+                    record.gpu_util_pct,
+                    record.vram_used_mb,
+                    record.cost_usd,
+                ),
+            )
 
     def _earnings_db(self, worker_id: str) -> dict[str, Any] | None:
         conn = self._connect()
         if conn is None:
             return None
 
-        with conn:
-            with conn.cursor(row_factory=dict_row) as cur:
-                self._refresh_usage_per_minute(cur)
-                cur.execute(
-                    """
+        with conn, conn.cursor(row_factory=dict_row) as cur:
+            self._refresh_usage_per_minute(cur)
+            cur.execute(
+                """
                     SELECT
                         EXTRACT(EPOCH FROM bucket)::BIGINT AS bucket,
                         ROUND(SUM(cost_usd)::NUMERIC, 6)::FLOAT AS cost_usd
@@ -151,33 +149,33 @@ class MetricsRepository:
                     GROUP BY bucket
                     ORDER BY bucket
                     """,
-                    (worker_id,),
-                )
-                series = [
-                    {"bucket": row["bucket"], "cost_usd": round(float(row["cost_usd"]), 6)}
-                    for row in cur.fetchall()
-                ]
+                (worker_id,),
+            )
+            series = [
+                {"bucket": row["bucket"], "cost_usd": round(float(row["cost_usd"]), 6)}
+                for row in cur.fetchall()
+            ]
 
-                cur.execute(
-                    """
+            cur.execute(
+                """
                     SELECT COALESCE(SUM(cost_usd), 0)::FLOAT AS total
                     FROM usage_per_minute
                     WHERE worker_id = %s
                     """,
-                    (worker_id,),
-                )
-                total = float(cur.fetchone()["total"])
+                (worker_id,),
+            )
+            total = float(cur.fetchone()["total"])
 
-                cur.execute(
-                    """
+            cur.execute(
+                """
                     SELECT COALESCE(SUM(cost_usd), 0)::FLOAT AS today
                     FROM usage_per_minute
                     WHERE worker_id = %s
                       AND bucket >= date_trunc('day', now() AT TIME ZONE 'utc')
                     """,
-                    (worker_id,),
-                )
-                today = float(cur.fetchone()["today"])
+                (worker_id,),
+            )
+            today = float(cur.fetchone()["today"])
 
         return {
             "worker_id": worker_id,
@@ -199,16 +197,16 @@ class MetricsRepository:
                 )
                 """
             )
-        except Exception:
+        except psycopg.Error:
             # Local dev should still be able to read the last materialized data
             # if a refresh policy or Timescale permissions get in the way.
             cur.connection.rollback()
 
     def _earnings_memory(self, worker_id: str) -> dict[str, Any]:
-        buckets: dict[int, Decimal] = defaultdict(lambda: Decimal("0"))
-        today = Decimal("0")
-        total = Decimal("0")
-        today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min, timezone.utc)
+        buckets: dict[int, Decimal] = defaultdict(lambda: Decimal(0))
+        today = Decimal(0)
+        total = Decimal(0)
+        today_start = datetime.combine(datetime.now(UTC).date(), time.min, UTC)
 
         with self._lock:
             records = [record for record in self._memory if record.worker_id == worker_id]

@@ -2,7 +2,7 @@ import jwt
 from base58 import b58encode
 from nacl.signing import SigningKey
 
-from services.api.app.auth import AuthService
+from services.api.app.auth import AuthError, AuthService
 from services.api.app.pairing import PairingStore
 
 
@@ -43,7 +43,7 @@ def test_auth_service_rejects_bad_signature():
 
     try:
         service.verify_and_mint(wallet, bad_signature)
-    except Exception as exc:
+    except AuthError as exc:
         assert "signature verification failed" in str(exc)
     else:
         raise AssertionError("bad signature should not verify")

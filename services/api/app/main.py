@@ -13,7 +13,7 @@ Contract (do not break these paths/shapes without telling the team):
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,7 +41,7 @@ pairing_store = PairingStore()
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 # --- health ---------------------------------------------------------------

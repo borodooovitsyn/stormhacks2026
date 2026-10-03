@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import base64
 import binascii
 import os
 import secrets
 import time
+from dataclasses import dataclass
 
 import jwt
 from base58 import b58decode
