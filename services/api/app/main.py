@@ -14,13 +14,13 @@ Contract (do not break these paths/shapes without telling the team):
 from __future__ import annotations
 
 import secrets
-import time
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from services.api.app.database import MetricsRepository
 from services.api.app.jobs import InMemoryJobQueue
 
 app = FastAPI(title="GPU Share API", version="0.1.0")
@@ -34,6 +34,7 @@ app.add_middleware(
 )
 
 job_queue = InMemoryJobQueue()
+metrics_repo = MetricsRepository()
 
 
 def _now() -> str:
@@ -94,10 +95,10 @@ class JobCreateRequest(BaseModel):
 class MetricSample(BaseModel):
     worker_id: str
     job_id: str
-    gpu_util_pct: float
-    vram_used_mb: int
-    cost_usd: float
-    ts: str | None = None
+    gpu_util_pct: float = Field(ge=0, le=100)
+    vram_used_mb: int = Field(ge=0)
+    cost_usd: float = Field(ge=0)
+    ts: datetime | None = None
 
 
 @app.post("/jobs")
@@ -140,8 +141,15 @@ def claim_chunk(worker_id: str) -> dict:
 
 @app.post("/metrics")
 def post_metrics(sample: MetricSample) -> dict:
-    # Tiger Data persistence lands in the next P1 layer.
-    return {"accepted": True, "ts": sample.ts or _now()}
+    ts = metrics_repo.record_metric(
+        worker_id=sample.worker_id,
+        job_id=sample.job_id,
+        gpu_util_pct=sample.gpu_util_pct,
+        vram_used_mb=sample.vram_used_mb,
+        cost_usd=sample.cost_usd,
+        ts=sample.ts,
+    )
+    return {"accepted": True, "ts": ts.isoformat()}
 
 
 @app.post("/chunks/{chunk_id}/complete")
@@ -156,16 +164,4 @@ def complete_chunk(chunk_id: str) -> dict:
 
 @app.get("/earnings/{worker_id}")
 def earnings(worker_id: str) -> dict:
-    # Tiger Data aggregate read lands in the next P1 layer.
-    now = int(time.time())
-    series = [
-        {"bucket": now - 60 * i, "cost_usd": round(0.02 * (10 - i), 4)}
-        for i in range(10, 0, -1)
-    ]
-    return {
-        "worker_id": worker_id,
-        "payout_wallet": "MockWa11etAddr1111111111111111111111111111",
-        "earnings_today_usd": round(sum(p["cost_usd"] for p in series), 4),
-        "earnings_total_usd": 1.2345,
-        "series": series,
-    }
+    return metrics_repo.earnings(worker_id)
