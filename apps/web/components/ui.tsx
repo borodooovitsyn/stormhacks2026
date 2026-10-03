@@ -100,7 +100,7 @@ export function Button({
   const cls =
     "inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
     (variant === "primary"
-      ? "bg-accent text-accent-ink hover:bg-[#6bff93]"
+      ? "bg-accent text-accent-ink hover:bg-accent-hover"
       : "border border-border text-text hover:bg-surface-2");
   if (href) return <Link href={href} className={cls}>{children}</Link>;
   return (

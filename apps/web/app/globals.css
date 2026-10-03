@@ -10,6 +10,7 @@
   --text: #e8f0e8;
   --muted: #8d9b8d;
   --accent: #3dff72;
+  --accent-hover: #6bff93;
   --accent-ink: #021407;
   --warn: #f5b942;
   --danger: #ff6b6b;
@@ -23,6 +24,7 @@
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
@@ -101,7 +103,7 @@ body {
   border-radius: 8px !important;
 }
 .wallet-adapter-button:not([disabled]):hover {
-  background: #6bff93 !important;
+  background: var(--accent-hover) !important;
 }
 .wallet-adapter-modal-wrapper {
   background: var(--surface) !important;
