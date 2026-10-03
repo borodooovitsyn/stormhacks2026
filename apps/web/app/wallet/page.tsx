@@ -37,7 +37,7 @@ export default function WalletPage() {
         <PageHeader title="Wallet" subtitle="Your credits, deposits and payouts, all settled on Solana." />
         <Card>
           <EmptyState
-            title="Connect a wallet to continue"
+            title="No wallet, no wallet page"
             body="Sign in with Phantom. No email or card needed; you just sign a one-time message."
             action={<Button onClick={() => setVisible(true)}>Connect wallet</Button>}
           />

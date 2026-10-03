@@ -24,7 +24,7 @@ export default function DownloadPage() {
   return (
     <>
       <PageHeader
-        title="Share your GPU"
+        title="Put your GPU to work"
         subtitle="The desktop app runs jobs in a sandbox on your machine and sends your earnings to your wallet. Install it, then pair it with this account."
       />
 

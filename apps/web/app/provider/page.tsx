@@ -65,8 +65,8 @@ export default function ProviderPage() {
           <EarningsChart series={data.series} />
         ) : (
           <EmptyState
-            title="No usage yet"
-            body="Start sharing from the desktop app and your first minute of earnings will show up here."
+            title="Nothing earned yet"
+            body="Your GPU is napping. Start sharing from the desktop app and the first minute of earnings lands here."
           />
         )}
       </Card>

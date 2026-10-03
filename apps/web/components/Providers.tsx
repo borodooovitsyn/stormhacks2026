@@ -48,7 +48,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(res.token);
       setTokenState(res.token);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed");
+      const msg = e instanceof Error ? e.message : "";
+      setError(
+        /reject|denied|declin|cancel/i.test(msg)
+          ? "You declined the signature request"
+          : msg || "Couldn’t reach the sign-in service",
+      );
     } finally {
       setSigningIn(false);
     }

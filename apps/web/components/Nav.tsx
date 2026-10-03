@@ -69,7 +69,7 @@ export function Nav() {
       </div>
       {error && (
         <p role="alert" className="border-t border-danger/30 bg-danger/10 px-4 py-2 text-center text-sm text-danger">
-          Sign-in failed: {error}. Check your wallet and try again.
+          Sign-in failed. {error}. Open your wallet and try again.
         </p>
       )}
       <nav

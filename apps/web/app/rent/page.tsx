@@ -26,8 +26,8 @@ export default function RentPage() {
   return (
     <>
       <PageHeader
-        title="Rent GPUs"
-        subtitle="Upload your files, pick a job type, and we split the work across idle GPUs. You pay per minute of measured usage."
+        title="Rent a GPU"
+        subtitle="Drop in your files, pick a job, and we split the work across idle GPUs. You pay per minute of measured usage."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
