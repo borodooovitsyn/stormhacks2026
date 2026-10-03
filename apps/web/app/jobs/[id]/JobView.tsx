@@ -92,7 +92,7 @@ export function JobView() {
                 aria-label={c.id}
               >
                 <div
-                  className={`h-full rounded-full transition-[width] duration-500 ${
+                  className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${
                     c.status === "done" ? "bg-accent" : "bg-accent/60"
                   }`}
                   style={{ width: `${c.progress}%` }}
