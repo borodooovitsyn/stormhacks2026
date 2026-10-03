@@ -1,0 +1,78 @@
+# --- Claude / AI tooling ---
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claude.json
+.mcp.json
+
+# --- Markdown (everything except READMEs) ---
+*.md
+!README.md
+!**/README.md
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+
+# --- Secrets (never commit) ---
+.env
+.env.*
+!.env.example
+keys/
+*-keypair.json
+*.pem
+*.key
+id.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# --- Node / web ---
+node_modules/
+.next/
+out/
+.turbo/
+.vercel/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Desktop (Tauri / Rust / Electron / PyInstaller) ---
+target/
+src-tauri/target/
+src-tauri/gen/
+release/
+*.spec
+*.exe
+*.dmg
+*.AppImage
+*.msi
+
+# --- Data / models / runtime ---
+data/
+results/
+*.log
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.tif
+*.tiff
+pgdata/
