@@ -1,0 +1,27 @@
+[project]
+name = "gpu-share"
+version = "0.1.0"
+description = "Rent or share GPU capacity with instant Solana payments."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "ruff>=0.6",
+]
+
+# One root project covers all Python code: services/api, services/worker, payments.
+[tool.setuptools]
+packages = ["services"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
