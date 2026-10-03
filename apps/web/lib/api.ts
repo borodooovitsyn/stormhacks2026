@@ -5,6 +5,7 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const TOKEN_KEY = "gpushare.token";
+const WALLET_KEY = "gpushare.wallet";
 
 export function getToken(): string | null {
   try {
@@ -14,10 +15,29 @@ export function getToken(): string | null {
   }
 }
 
-export function setToken(token: string | null) {
+// A token only means something for the wallet that signed for it, so the two
+// are stored and cleared together.
+export type Session = { token: string; wallet: string };
+
+export function getSession(): Session | null {
   try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
+    const wallet = localStorage.getItem(WALLET_KEY);
+    return token && wallet ? { token, wallet } : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setSession(session: Session | null) {
+  try {
+    if (session) {
+      localStorage.setItem(TOKEN_KEY, session.token);
+      localStorage.setItem(WALLET_KEY, session.wallet);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(WALLET_KEY);
+    }
   } catch {
     /* storage unavailable: session-only */
   }

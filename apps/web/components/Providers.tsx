@@ -1,11 +1,11 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ConnectionProvider, WalletProvider, useWallet } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import bs58 from "bs58";
-import { api, getToken, setToken } from "@/lib/api";
+import { api, getSession, setSession as storeSession, type Session } from "@/lib/api";
 
 type AuthState = {
   token: string | null;
@@ -24,14 +24,32 @@ export function useAuth() {
 }
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { publicKey, signMessage, disconnect } = useWallet();
-  const [token, setTokenState] = useState<string | null>(null);
+  const { publicKey, signMessage, disconnect, connected } = useWallet();
+  const [session, setSession] = useState<Session | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const wasConnected = useRef(false);
+  const address = publicKey?.toBase58() ?? null;
 
   // Read localStorage after mount so server and client markup match.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setTokenState(getToken()), []);
+  useEffect(() => setSession(getSession()), []);
+
+  // A session belongs to one wallet: drop it if the user switches wallets or
+  // disconnects. (While autoConnect is still resolving, `connected` is false
+  // but was never true, so a page reload keeps the session.)
+  useEffect(() => {
+    const dropped = wasConnected.current && !connected;
+    wasConnected.current = connected;
+    const switched = connected && session !== null && session.wallet !== address;
+    if (dropped || switched) {
+      storeSession(null);
+      setSession(null);
+    }
+  }, [connected, address, session]);
+
+  // Never hand out a token that isn't for the wallet currently connected.
+  const token = session && session.wallet === address ? session.token : null;
 
   const signIn = useCallback(async () => {
     if (!publicKey || !signMessage) {
@@ -45,8 +63,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       const { nonce } = await api.nonce(wallet);
       const signature = await signMessage(new TextEncoder().encode(nonce));
       const res = await api.verify(wallet, bs58.encode(signature));
-      setToken(res.token);
-      setTokenState(res.token);
+      const next = { token: res.token, wallet };
+      storeSession(next);
+      setSession(next);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
       setError(
@@ -60,8 +79,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [publicKey, signMessage]);
 
   const signOut = useCallback(() => {
-    setToken(null);
-    setTokenState(null);
+    storeSession(null);
+    setSession(null);
     void disconnect();
   }, [disconnect]);
 

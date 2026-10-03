@@ -24,7 +24,7 @@ const logoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CoreWhore",
+  title: { default: "CoreWhore", template: "%s · CoreWhore" },
   description: "Rent or share GPU capacity with instant Solana payments.",
 };
 
@@ -35,9 +35,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${logoFont.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <a
+          href="#main"
+          className="sr-only rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
+        >
+          Skip to content
+        </a>
         <Providers>
           <Nav />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+          <main
+            id="main"
+            tabIndex={-1}
+            className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 outline-none sm:px-6 sm:py-10"
+          >
             {children}
           </main>
         </Providers>

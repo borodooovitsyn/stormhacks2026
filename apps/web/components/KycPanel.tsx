@@ -86,6 +86,8 @@ function KycFlow() {
           src={url}
           title="Trulioo identity verification"
           allow="camera; microphone"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          referrerPolicy="strict-origin-when-cross-origin"
           className="mt-4 h-[640px] w-full rounded-lg border border-border bg-white"
         />
       )}

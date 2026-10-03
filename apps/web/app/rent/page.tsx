@@ -35,25 +35,28 @@ export default function RentPage() {
         <div className="space-y-4">
           <Card>
             <h2 className="mb-3 font-medium">1. Job type</h2>
-            <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Job type">
+            <fieldset className="grid gap-3 sm:grid-cols-2">
+              <legend className="sr-only">Job type</legend>
               {(Object.keys(JOB_TYPES) as JobType[]).map((k) => (
-                <button
-                  key={k}
-                  role="radio"
-                  aria-checked={type === k}
-                  onClick={() => {
-                    setType(k);
-                    setFiles([]);
-                  }}
-                  className={`rounded-xl border p-4 text-left transition-colors ${
-                    type === k ? "border-accent bg-accent/5" : "border-border hover:bg-surface-2"
-                  }`}
-                >
-                  <p className="font-medium">{JOB_TYPES[k].label}</p>
-                  <p className="mt-1 text-xs text-muted">{JOB_TYPES[k].blurb}</p>
-                </button>
+                <label key={k} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="job-type"
+                    value={k}
+                    checked={type === k}
+                    onChange={() => {
+                      setType(k);
+                      setFiles([]);
+                    }}
+                    className="peer sr-only"
+                  />
+                  <span className="block h-full rounded-xl border border-border p-4 transition-colors hover:bg-surface-2 peer-checked:border-accent peer-checked:bg-accent/5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
+                    <span className="block font-medium">{JOB_TYPES[k].label}</span>
+                    <span className="mt-1 block text-xs text-muted">{JOB_TYPES[k].blurb}</span>
+                  </span>
+                </label>
               ))}
-            </div>
+            </fieldset>
           </Card>
 
           <Card>
