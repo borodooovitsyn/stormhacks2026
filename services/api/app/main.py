@@ -1,10 +1,5 @@
 """GPU Share backend API (FastAPI).
 
-First-commit skeleton: every endpoint is the agreed contract, returning MOCK data
-so the web client, desktop app, worker, and payments module can all build in
-parallel against a real HTTP wire format. Swap the mock bodies for real logic
-(Tiger Data, Solana, job queue) behind these unchanged signatures.
-
 Contract (do not break these paths/shapes without telling the team):
   GET  /health
   POST /auth/nonce            -> web wallet login: get a nonce to sign
@@ -22,9 +17,11 @@ import secrets
 import time
 from datetime import datetime, timezone
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from services.api.app.jobs import InMemoryJobQueue
 
 app = FastAPI(title="GPU Share API", version="0.1.0")
 
@@ -35,6 +32,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+job_queue = InMemoryJobQueue()
 
 
 def _now() -> str:
@@ -61,13 +60,13 @@ class VerifyRequest(BaseModel):
 
 @app.post("/auth/nonce")
 def auth_nonce(req: NonceRequest) -> dict:
-    # MOCK: real version stores the nonce against the wallet with a short TTL.
+    # Auth lands in the next P1 layer; nonce endpoint shape stays stable.
     return {"wallet": req.wallet, "nonce": secrets.token_hex(16)}
 
 
 @app.post("/auth/verify")
 def auth_verify(req: VerifyRequest) -> dict:
-    # MOCK: real version verifies the signed nonce and mints a JWT.
+    # Auth lands in the next P1 layer; token response shape stays stable.
     return {"token": "mock-jwt-" + secrets.token_hex(8), "wallet": req.wallet}
 
 
@@ -75,16 +74,22 @@ def auth_verify(req: VerifyRequest) -> dict:
 
 @app.post("/devices/pair")
 def devices_pair() -> dict:
-    # MOCK: real version issues a code, user approves on web with their wallet,
-    # app polls this (or a /devices/pair/{code}) until it receives a device token.
+    # Pairing state lands in the next P1 layer; response shape stays stable.
     return {
         "code": secrets.token_hex(3).upper(),
         "device_token": "mock-device-" + secrets.token_hex(8),
-        "status": "approved",  # real flow starts as "pending"
+        "status": "approved",
     }
 
 
 # --- worker loop ----------------------------------------------------------
+
+class JobCreateRequest(BaseModel):
+    job_type: str = "segmentation"
+    input_url: str = "mock://flood-watch/tile-batch.tif"
+    total_units: int = Field(default=6, ge=1)
+    requested_chunks: int = Field(default=6, ge=1)
+
 
 class MetricSample(BaseModel):
     worker_id: str
@@ -95,27 +100,55 @@ class MetricSample(BaseModel):
     ts: str | None = None
 
 
+@app.post("/jobs")
+def create_job(req: JobCreateRequest) -> dict:
+    job = job_queue.create_job(
+        job_type=req.job_type,
+        input_url=req.input_url,
+        total_units=req.total_units,
+        requested_chunks=req.requested_chunks,
+    )
+    return {
+        "job_id": job.job_id,
+        "job_type": job.job_type,
+        "status": "queued",
+        "chunk_count": len(job.chunk_ids),
+    }
+
+
 @app.post("/workers/{worker_id}/claim")
 def claim_chunk(worker_id: str) -> dict:
-    # MOCK: real version pops the next pending chunk from the job queue.
+    job_queue.ensure_demo_job()
+    chunk = job_queue.claim_next(worker_id)
+    if chunk is None:
+        return {
+            "worker_id": worker_id,
+            "chunk_id": "",
+            "job_id": "",
+            "job_type": "idle",
+            "input_url": "",
+        }
+
     return {
         "worker_id": worker_id,
-        "chunk_id": "chunk-" + secrets.token_hex(4),
-        "job_id": "job-demo",
-        "job_type": "segmentation",
-        "input_url": "mock://tile-0.tif",
+        "chunk_id": chunk.chunk_id,
+        "job_id": chunk.job_id,
+        "job_type": chunk.job_type,
+        "input_url": chunk.input_url,
     }
 
 
 @app.post("/metrics")
 def post_metrics(sample: MetricSample) -> dict:
-    # MOCK: real version inserts into the Tiger Data gpu_metrics hypertable.
+    # Tiger Data persistence lands in the next P1 layer.
     return {"accepted": True, "ts": sample.ts or _now()}
 
 
 @app.post("/chunks/{chunk_id}/complete")
 def complete_chunk(chunk_id: str) -> dict:
-    # MOCK: real version marks the chunk done and stores the result pointer.
+    chunk = job_queue.complete(chunk_id)
+    if chunk is None:
+        raise HTTPException(status_code=404, detail="chunk not found")
     return {"chunk_id": chunk_id, "status": "complete"}
 
 
@@ -123,7 +156,7 @@ def complete_chunk(chunk_id: str) -> dict:
 
 @app.get("/earnings/{worker_id}")
 def earnings(worker_id: str) -> dict:
-    # MOCK: real version reads the usage_per_minute continuous aggregate.
+    # Tiger Data aggregate read lands in the next P1 layer.
     now = int(time.time())
     series = [
         {"bucket": now - 60 * i, "cost_usd": round(0.02 * (10 - i), 4)}

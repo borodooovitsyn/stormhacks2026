@@ -24,7 +24,7 @@ def test_contract_endpoints_respond():
               "vram_used_mb": 4096, "cost_usd": 0.01}
     assert client.post("/metrics", json=metric).json()["accepted"] is True
 
-    assert client.post("/chunks/c1/complete").json()["status"] == "complete"
+    assert client.post(f"/chunks/{claim['chunk_id']}/complete").json()["status"] == "complete"
 
     earn = client.get("/earnings/w1").json()
     assert earn["payout_wallet"] and isinstance(earn["series"], list)
