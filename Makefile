@@ -13,8 +13,8 @@ setup:  ## create venv and install deps
 api:  ## run the FastAPI backend (docs at http://localhost:8000/docs)
 	$(VENV)/bin/uvicorn services.api.app.main:app --reload --port 8000
 
-worker:  ## run the GPU worker (fake metrics without a GPU) -- stub until services/worker lands
-	@echo "worker not implemented yet (commit #6). Owner: desktop/worker person."
+worker:  ## run the GPU worker (fake metrics, needs `make api` running)
+	$(VENV)/bin/python -m services.worker
 
 test:  ## run the test suite
 	$(VENV)/bin/pytest -q
