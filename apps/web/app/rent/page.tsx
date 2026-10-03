@@ -91,9 +91,18 @@ export default function RentPage() {
             {files.length > 0 && (
               <ul className="mt-4 max-h-44 divide-y divide-border overflow-auto text-sm">
                 {files.map((f, i) => (
-                  <li key={`${f.name}-${i}`} className="flex justify-between py-2">
+                  <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-3 py-2">
                     <span className="truncate">{f.name}</span>
-                    <span className="num ml-3 shrink-0 text-muted">{(f.size / 1024).toFixed(0)} KB</span>
+                    <span className="flex shrink-0 items-center gap-3">
+                      <span className="num text-muted">{(f.size / 1024).toFixed(0)} KB</span>
+                      <button
+                        onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}
+                        aria-label={`Remove ${f.name}`}
+                        className="rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-danger"
+                      >
+                        Remove
+                      </button>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -114,13 +123,15 @@ export default function RentPage() {
               <Row k="Estimated cost" v={units ? usd(est.cost_usd) : "—"} strong />
             </div>
           </dl>
-          <div className="mt-5">
+          <div className="mt-5 [&>*]:w-full">
             <Button onClick={run} disabled={units === 0}>
-              Run job
+              {units ? `Run job · ${usd(est.cost_usd)}` : "Run job"}
             </Button>
           </div>
-          <p className="mt-3 text-xs text-muted">
-            Billed on measured GPU usage, not on this estimate.
+          <p className="mt-3 text-xs text-muted" aria-live="polite">
+            {units === 0
+              ? `Add at least one ${meta.unit} to see the cost and run the job.`
+              : "Charged from your credit balance. Final cost follows measured GPU usage, not this estimate."}
           </p>
         </Card>
       </div>
