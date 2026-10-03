@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Callable, Iterator
 
+from services.worker.gpu import sample_gpu
 from services.worker.metering import interval_cost
 
 
@@ -31,4 +32,18 @@ def fake_run(
             vram_used_mb=rng.randint(2000, 8000),
             cost_usd=interval_cost(step, rate_usd_per_hour),
         )
+        elapsed += step
+
+
+def gpu_run(
+    duration_seconds: float,
+    interval_seconds: float,
+    rate_usd_per_hour: float,
+    sample: Callable[[], tuple[float, int]] = sample_gpu,
+) -> Iterator[Sample]:
+    elapsed = 0.0
+    while elapsed < duration_seconds:
+        step = min(interval_seconds, duration_seconds - elapsed)
+        util, vram = sample()
+        yield Sample(gpu_util_pct=util, vram_used_mb=vram, cost_usd=interval_cost(step, rate_usd_per_hour))
         elapsed += step
