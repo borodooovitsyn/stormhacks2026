@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
+/* CoreWhore: near-black with a green undertone, one neon accent used only for
+   actions, selection and live state. */
 :root {
-  --bg: #0a0c0f;
-  --surface: #11151a;
-  --surface-2: #171c23;
-  --border: #212831;
-  --text: #e8ecf1;
-  --muted: #8b95a3;
-  --accent: #3ddc97;
-  --accent-ink: #04120b;
+  --bg: #080b08;
+  --surface: #0e130e;
+  --surface-2: #151b15;
+  --border: #1f281f;
+  --text: #e8f0e8;
+  --muted: #8d9b8d;
+  --accent: #3dff72;
+  --accent-ink: #021407;
   --warn: #f5b942;
   --danger: #ff6b6b;
 }
@@ -26,16 +28,30 @@
   --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-logo: var(--font-logo-face), ui-monospace, monospace;
 }
 
 html {
   color-scheme: dark;
+  accent-color: var(--accent);
+  scrollbar-color: var(--border) var(--bg);
 }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  caret-color: var(--accent);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .num {
@@ -44,13 +60,11 @@ body {
 }
 
 @keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
+  to { background-position: -200% 0; }
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--surface-2) 25%, #1f2630 50%, var(--surface-2) 75%);
+  background: linear-gradient(90deg, var(--surface-2) 25%, #1e271e 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
   border-radius: 8px;
@@ -61,12 +75,18 @@ body {
   50% { opacity: 0.4; transform: scale(0.8); }
 }
 
-.live-dot {
-  animation: pulse-dot 1.6s ease-in-out infinite;
+.live-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+
+/* The logo's underscore is a terminal cursor. */
+@keyframes cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
+.cursor { animation: cursor 1.1s steps(1) infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .skeleton, .live-dot { animation: none; }
+  .skeleton, .live-dot, .cursor { animation: none; }
 }
 
 /* Wallet adapter button: match our theme */
@@ -78,10 +98,10 @@ body {
   font-size: 14px !important;
   height: 38px !important;
   padding: 0 16px !important;
-  border-radius: 10px !important;
+  border-radius: 8px !important;
 }
 .wallet-adapter-button:not([disabled]):hover {
-  background: #5ae8ad !important;
+  background: #6bff93 !important;
 }
 .wallet-adapter-modal-wrapper {
   background: var(--surface) !important;

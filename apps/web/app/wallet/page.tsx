@@ -5,6 +5,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useAuth } from "@/components/Providers";
+import { KycPanel } from "@/components/KycPanel";
 import { SAMPLE_BALANCE_USD, SAMPLE_PAYOUTS } from "@/lib/pending";
 import { Button, Card, EmptyState, PageHeader, PreviewBadge, Stat, usd } from "@/components/ui";
 
@@ -110,6 +111,10 @@ export default function WalletPage() {
           </div>
           {note && <p className="mt-3 text-xs text-warn">{note}</p>}
         </Card>
+      </div>
+
+      <div className="mt-4">
+        <KycPanel />
       </div>
 
       <Card className="mt-4">

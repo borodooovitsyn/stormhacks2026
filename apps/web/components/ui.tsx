@@ -45,16 +45,17 @@ export function Stat({
   hint?: string;
   loading?: boolean;
 }) {
+  // Flat on purpose: a row of boxed tiles is the dashboard cliché.
   return (
-    <Card>
-      <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
+    <div className="border-t border-border pt-4">
+      <p className="text-sm text-muted">{label}</p>
       {loading ? (
-        <div className="skeleton mt-3 h-9 w-32" />
+        <div className="skeleton mt-2 h-8 w-28" />
       ) : (
-        <p className="num mt-2 text-3xl font-semibold tracking-tight">{value}</p>
+        <p className="num mt-1 text-2xl font-semibold tracking-tight">{value}</p>
       )}
       {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
-    </Card>
+    </div>
   );
 }
 
@@ -97,9 +98,9 @@ export function Button({
   type?: "button" | "submit";
 }) {
   const cls =
-    "inline-flex h-10 items-center justify-center rounded-[10px] px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
+    "inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
     (variant === "primary"
-      ? "bg-accent text-accent-ink hover:bg-[#5ae8ad]"
+      ? "bg-accent text-accent-ink hover:bg-[#6bff93]"
       : "border border-border text-text hover:bg-surface-2");
   if (href) return <Link href={href} className={cls}>{children}</Link>;
   return (

@@ -41,20 +41,22 @@ export default function ProviderPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Earned today" value={data ? usd(data.earnings_today_usd) : ""} loading={loading} />
-        <Stat label="Earned total" value={data ? usd(data.earnings_total_usd) : ""} loading={loading} />
-        <Stat
-          label="Last minute"
-          value={data ? usd(perMin) : ""}
-          hint={data ? "from the usage_per_minute aggregate" : undefined}
-          loading={loading}
-        />
-      </div>
-
-      <Card className="mt-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-medium">Earnings per minute</h2>
+      <Card>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <p className="text-sm text-muted">Earned today</p>
+            {loading ? (
+              <div className="skeleton mt-2 h-12 w-48" />
+            ) : (
+              <p className="num mt-1 text-5xl font-semibold tracking-tight text-accent">
+                {data ? usd(data.earnings_today_usd) : "—"}
+              </p>
+            )}
+          </div>
+          <div className="flex gap-8">
+            <Stat label="All time" value={data ? usd(data.earnings_total_usd) : ""} loading={loading} />
+            <Stat label="Last minute" value={data ? usd(perMin) : ""} loading={loading} />
+          </div>
           <LiveBadge live={!error} />
         </div>
         {loading ? (

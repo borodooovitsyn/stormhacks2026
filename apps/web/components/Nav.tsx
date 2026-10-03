@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useAuth } from "./Providers";
+import { Logo } from "./Logo";
 
 // The adapter button reads window state, so render it client-side only.
 const WalletMultiButton = dynamic(
@@ -22,16 +23,14 @@ const LINKS = [
 export function Nav() {
   const pathname = usePathname();
   const { connected } = useWallet();
-  const { token, signIn, signingIn, signOut } = useAuth();
+  const { token, signIn, signingIn, signOut, error } = useAuth();
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-accent-ink">
-            G
-          </span>
-          GPU Share
+        <Link href="/" className="flex items-baseline gap-2.5" aria-label="CoreWhore home">
+          <Logo />
+          <span className="hidden text-sm font-semibold tracking-tight text-muted sm:inline">CoreWhore</span>
         </Link>
         <nav className="hidden gap-1 sm:flex" aria-label="Main">
           {LINKS.map((l) => {
@@ -68,6 +67,11 @@ export function Nav() {
           <WalletMultiButton />
         </div>
       </div>
+      {error && (
+        <p role="alert" className="border-t border-danger/30 bg-danger/10 px-4 py-2 text-center text-sm text-danger">
+          Sign-in failed: {error}. Check your wallet and try again.
+        </p>
+      )}
       <nav
         className="flex gap-1 overflow-x-auto border-t border-border px-4 py-2 sm:hidden"
         aria-label="Main mobile"

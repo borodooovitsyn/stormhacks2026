@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -15,8 +15,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Real italic cut for the CW_ logo (Geist has none, the browser would fake it).
+const logoFont = JetBrains_Mono({
+  variable: "--font-logo-face",
+  subsets: ["latin"],
+  weight: "800",
+  style: "italic",
+});
+
 export const metadata: Metadata = {
-  title: "GPU Share",
+  title: "CoreWhore",
   description: "Rent or share GPU capacity with instant Solana payments.",
 };
 
@@ -24,7 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${logoFont.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <Providers>
