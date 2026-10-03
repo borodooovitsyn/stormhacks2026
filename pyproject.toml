@@ -7,6 +7,10 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "pydantic>=2.7",
+    "psycopg[binary]>=3.2",
+    "PyJWT>=2.9",
+    "PyNaCl>=1.5",
+    "base58>=2.1",
 ]
 
 [project.optional-dependencies]
@@ -17,8 +21,8 @@ dev = [
 ]
 
 # One root project covers all Python code: services/api, services/worker, payments.
-[tool.setuptools]
-packages = ["services"]
+[tool.setuptools.packages.find]
+include = ["services*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
