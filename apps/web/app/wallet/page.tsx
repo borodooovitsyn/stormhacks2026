@@ -6,6 +6,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useAuth } from "@/components/Providers";
 import { KycPanel } from "@/components/KycPanel";
+import { Tooltip } from "@/components/ui/tooltip-card";
 import { SAMPLE_BALANCE_USD, SAMPLE_PAYOUTS } from "@/lib/pending";
 import { Button, Card, EmptyState, PageHeader, PreviewBadge, usd } from "@/components/ui";
 
@@ -93,7 +94,13 @@ export default function WalletPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <p className="text-sm text-muted">Wallet balance (devnet)</p>
+          <p className="text-sm text-muted">
+            Wallet balance (
+            <Tooltip content="Solana’s test network. Tokens here have no real value, so nothing you do here costs real money.">
+              devnet
+            </Tooltip>
+            )
+          </p>
           {sol === null ? (
             <div className="skeleton mt-2 h-9 w-36" />
           ) : sol === "error" ? (

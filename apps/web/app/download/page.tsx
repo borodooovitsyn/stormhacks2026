@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api, type PairResult } from "@/lib/api";
 import { Button, Card, PageHeader } from "@/components/ui";
+import { Tooltip } from "@/components/ui/tooltip-card";
 
 export default function DownloadPage() {
   const [pair, setPair] = useState<PairResult | null>(null);
@@ -32,7 +33,11 @@ export default function DownloadPage() {
         <Card>
           <h2 className="font-medium">1. Download the app</h2>
           <p className="mt-1 text-sm text-muted">
-            Needs an NVIDIA GPU and Docker. You choose the VRAM cap and schedule.
+            Needs an NVIDIA GPU and Docker. You choose the{" "}
+            <Tooltip content="A soft limit: a memory cap plus time-slicing. Consumer GPUs can’t be split in hardware, so we limit what the worker is allowed to use.">
+              VRAM cap
+            </Tooltip>{" "}
+            and schedule.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button href="#" variant="ghost">Windows</Button>

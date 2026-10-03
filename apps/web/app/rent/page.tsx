@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { JOB_TYPES, estimateJob, type JobType } from "@/lib/pending";
 import { Button, Card, PageHeader, PreviewBadge, usd } from "@/components/ui";
+import { Tooltip } from "@/components/ui/tooltip-card";
 
 export default function RentPage() {
   const router = useRouter();
@@ -117,7 +118,14 @@ export default function RentPage() {
           </div>
           <dl className="space-y-3 text-sm">
             <Row k={`${meta.unit}s`} v={String(units)} />
-            <Row k="Chunks" v={units ? String(est.chunks) : "—"} />
+            <Row
+              k={
+                <Tooltip content="Your job is cut into pieces, each run on a different provider’s GPU, then merged back together.">
+                  Chunks
+                </Tooltip>
+              }
+              v={units ? String(est.chunks) : "—"}
+            />
             <Row k="Est. time" v={units ? `~${est.eta_min} min` : "—"} />
             <div className="border-t border-border pt-3">
               <Row k="Estimated cost" v={units ? usd(est.cost_usd) : "—"} strong />
@@ -139,7 +147,7 @@ export default function RentPage() {
   );
 }
 
-function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
+function Row({ k, v, strong }: { k: React.ReactNode; v: string; strong?: boolean }) {
   return (
     <div className="flex justify-between">
       <dt className="text-muted">{k}</dt>

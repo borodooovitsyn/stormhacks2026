@@ -1,9 +1,43 @@
 import { Button } from "@/components/ui";
+import { Tooltip } from "@/components/ui/tooltip-card";
 
 const STEPS = [
-  { t: "Drop your files", d: "Satellite tiles or audio files. Fixed job types only, so providers stay safe." },
-  { t: "We slice it up", d: "The job is cut into chunks and run on idle GPUs in parallel." },
-  { t: "Paid by the minute", d: "Usage is metered from real GPU logs; providers are paid on Solana." },
+  {
+    t: "Drop your files",
+    d: (
+      <>
+        Satellite tiles or audio files.{" "}
+        <Tooltip content="No arbitrary code. Jobs run in Docker with no network access and a read-only filesystem.">
+          Fixed job types
+        </Tooltip>{" "}
+        only, so providers stay safe.
+      </>
+    ),
+  },
+  {
+    t: "We slice it up",
+    d: (
+      <>
+        The job is cut into{" "}
+        <Tooltip content="Each chunk runs on a different provider’s GPU. When all are done, the results are merged back into one.">
+          chunks
+        </Tooltip>{" "}
+        and run on idle GPUs in parallel.
+      </>
+    ),
+  },
+  {
+    t: "Paid by the minute",
+    d: (
+      <>
+        Usage is{" "}
+        <Tooltip content="Billed from GPU utilization logs sampled every few seconds, not from what a provider claims.">
+          metered
+        </Tooltip>{" "}
+        from real GPU logs; providers are paid on Solana.
+      </>
+    ),
+  },
 ];
 
 export default function Home() {
