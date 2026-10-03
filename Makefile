@@ -1,4 +1,4 @@
-.PHONY: setup api worker test lint db clean
+.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda
 
 VENV = .venv
 PY = $(VENV)/bin/python
@@ -15,6 +15,12 @@ api:  ## run the FastAPI backend (docs at http://localhost:8000/docs)
 
 worker:  ## run the GPU worker (fake metrics, needs `make api` running)
 	$(VENV)/bin/python -m services.worker
+
+whisper-cpu:  ## build the CPU whisper image (any laptop)
+	docker build -t gpu-share/whisper:cpu services/worker/images/whisper
+
+whisper-cuda:  ## build the GPU whisper image (ROG / NVIDIA box)
+	docker build -f services/worker/images/whisper/Dockerfile.cuda -t gpu-share/whisper:cuda services/worker/images/whisper
 
 test:  ## run the test suite
 	$(VENV)/bin/pytest -q

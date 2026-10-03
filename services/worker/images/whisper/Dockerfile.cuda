@@ -1,0 +1,14 @@
+# GPU Whisper image. Build/run on NVIDIA (ROG) with NVIDIA Container Toolkit.
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --no-cache-dir faster-whisper huggingface_hub
+
+# Bake the tiny model so runtime needs no network (sandbox runs with --network none).
+RUN python3 -c "from huggingface_hub import snapshot_download; snapshot_download('Systran/faster-whisper-tiny', local_dir='/models/tiny')"
+
+COPY transcribe.py /app/transcribe.py
+ENV WHISPER_MODEL=/models/tiny WHISPER_DEVICE=cuda WHISPER_COMPUTE=float16
+ENTRYPOINT ["python3", "/app/transcribe.py"]

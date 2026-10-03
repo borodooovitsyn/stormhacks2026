@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import time
 from typing import Callable, Iterable
 
 from services.worker.client import BackendClient
+from services.worker.metering import interval_cost
 from services.worker.runner import Sample
 
 
@@ -31,3 +33,23 @@ def run_one(
         "total_cost_usd": total_cost,
         "completed": True,
     }
+
+
+def run_job_once(
+    client,
+    worker_id: str,
+    *,
+    rate_usd_per_hour: float,
+    run_job: Callable[[dict], bool],
+    sample: Callable[[], tuple[float, int]],
+    clock: Callable[[], float] = time.monotonic,
+) -> dict:
+    chunk = client.claim(worker_id)
+    started = clock()
+    ok = run_job(chunk)
+    elapsed = clock() - started
+    util, vram = sample()
+    cost = interval_cost(elapsed, rate_usd_per_hour)
+    client.report_metric(worker_id, chunk["job_id"], Sample(util, vram, cost))
+    client.complete(chunk["chunk_id"])
+    return {"chunk_id": chunk["chunk_id"], "ok": ok, "cost_usd": cost, "seconds": elapsed}
