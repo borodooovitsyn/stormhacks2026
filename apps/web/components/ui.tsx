@@ -102,6 +102,8 @@ export function Button({
     (variant === "primary"
       ? "bg-accent text-accent-ink hover:bg-accent-hover"
       : "border border-border text-text hover:bg-surface-2");
+  // In-page anchors stay plain <a> so the smooth scroller owns the jump.
+  if (href?.startsWith("#")) return <a href={href} className={cls}>{children}</a>;
   if (href) return <Link href={href} className={cls}>{children}</Link>;
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={cls}>

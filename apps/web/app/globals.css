@@ -109,3 +109,62 @@ body {
   background: var(--surface) !important;
   border: 1px solid var(--border);
 }
+
+/* GPU 360: a flat-shaded CSS 3D card turning on one axis. Constant motion, so
+   linear. Only transform animates. Reduced motion parks it at an angle. */
+.gpu-stage {
+  perspective: 900px;
+  height: 260px;
+  display: grid;
+  place-items: center;
+}
+.gpu-tilt {
+  transform-style: preserve-3d;
+  transform: rotateX(-14deg);
+}
+.gpu {
+  --len: 300px;
+  --h: 120px;
+  --d: 44px;
+  position: relative;
+  width: var(--len);
+  height: var(--h);
+  transform-style: preserve-3d;
+  animation: gpu-turn 16s linear infinite;
+}
+@keyframes gpu-turn {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+.gpu-face {
+  position: absolute;
+  backface-visibility: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.gpu-front { inset: 0; transform: translateZ(calc(var(--d) / 2)); display: flex; align-items: center; justify-content: space-evenly; padding: 0 14px; background: var(--surface-2); }
+.gpu-back { inset: 0; transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); background: var(--surface-2); }
+.gpu-end { width: var(--d); height: var(--h); top: 0; left: calc(50% - var(--d) / 2); }
+.gpu-right { transform: rotateY(90deg) translateZ(calc(var(--len) / 2)); }
+.gpu-left { transform: rotateY(-90deg) translateZ(calc(var(--len) / 2)); }
+.gpu-edge { width: var(--len); height: var(--d); left: 0; top: calc(50% - var(--d) / 2); }
+.gpu-top { transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); background: linear-gradient(90deg, var(--accent) 0 18%, var(--surface) 18%); }
+.gpu-bottom { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); }
+.gpu-fan {
+  width: 84px;
+  height: 84px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(circle, var(--surface) 0 16%, transparent 17%),
+    repeating-conic-gradient(var(--border) 0 18deg, var(--bg) 18deg 36deg);
+}
+.gpu-plate {
+  position: absolute;
+  inset: 14px;
+  border: 1px dashed var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gpu { animation: none; transform: rotateY(-32deg); }
+}
