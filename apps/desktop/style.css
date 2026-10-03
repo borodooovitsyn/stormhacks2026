@@ -1,0 +1,100 @@
+:root {
+  --bg: #0b0e14;
+  --card: #141922;
+  --line: #222b39;
+  --text: #e6edf3;
+  --muted: #8b97a7;
+  --accent: #4ade80;
+  --danger: #f87171;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 14px/1.5 -apple-system, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 700; letter-spacing: 0.5px; }
+.pill {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.screen { padding: 28px 24px; }
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+h1 { font-size: 22px; margin: 0 0 6px; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 18px;
+}
+.primary { background: var(--accent); color: #06220f; font-weight: 600; }
+.primary.danger { background: var(--danger); color: #2a0b0b; }
+.link { background: transparent; color: var(--accent); padding: 6px 0; }
+
+#pair-info { margin-top: 22px; }
+.code {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin: 10px 0;
+  color: var(--accent);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+}
+.span2 { grid-column: 1 / -1; }
+.label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.value { font-size: 18px; font-weight: 600; margin-top: 2px; }
+.value.big { font-size: 34px; color: var(--accent); }
+.value.small { font-size: 13px; font-weight: 500; word-break: break-all; }
+
+.row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 70px;
+  margin-top: 16px;
+}
+.chart span {
+  flex: 1;
+  background: linear-gradient(var(--accent), #1f6f3f);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+
+.log {
+  background: #080b11;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  height: 200px;
+  overflow: auto;
+  font: 12px/1.5 ui-monospace, Menlo, monospace;
+  color: #a7f3c0;
+  white-space: pre-wrap;
+}
