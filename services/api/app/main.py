@@ -13,15 +13,16 @@ Contract (do not break these paths/shapes without telling the team):
 
 from __future__ import annotations
 
-import secrets
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from services.api.app.auth import AuthError, AuthService
 from services.api.app.database import MetricsRepository
 from services.api.app.jobs import InMemoryJobQueue
+from services.api.app.pairing import PairingStore
 
 app = FastAPI(title="GPU Share API", version="0.1.0")
 
@@ -35,6 +36,8 @@ app.add_middleware(
 
 job_queue = InMemoryJobQueue()
 metrics_repo = MetricsRepository()
+auth_service = AuthService()
+pairing_store = PairingStore()
 
 
 def _now() -> str:
@@ -61,26 +64,45 @@ class VerifyRequest(BaseModel):
 
 @app.post("/auth/nonce")
 def auth_nonce(req: NonceRequest) -> dict:
-    # Auth lands in the next P1 layer; nonce endpoint shape stays stable.
-    return {"wallet": req.wallet, "nonce": secrets.token_hex(16)}
+    return {"wallet": req.wallet, "nonce": auth_service.create_nonce(req.wallet)}
 
 
 @app.post("/auth/verify")
 def auth_verify(req: VerifyRequest) -> dict:
-    # Auth lands in the next P1 layer; token response shape stays stable.
-    return {"token": "mock-jwt-" + secrets.token_hex(8), "wallet": req.wallet}
+    try:
+        token = auth_service.verify_and_mint(req.wallet, req.signature)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return {"token": token, "wallet": req.wallet}
 
 
 # --- desktop pairing ------------------------------------------------------
 
+class PairApproveRequest(BaseModel):
+    wallet: str
+
+
 @app.post("/devices/pair")
 def devices_pair() -> dict:
-    # Pairing state lands in the next P1 layer; response shape stays stable.
-    return {
-        "code": secrets.token_hex(3).upper(),
-        "device_token": "mock-device-" + secrets.token_hex(8),
-        "status": "approved",
-    }
+    return pairing_store.create().as_response()
+
+
+@app.get("/devices/pair/{code}")
+def devices_pair_status(code: str) -> dict:
+    session = pairing_store.get(code)
+    if session is None:
+        raise HTTPException(status_code=404, detail="pairing code not found")
+    return session.as_response()
+
+
+@app.post("/devices/pair/{code}/approve")
+def devices_pair_approve(code: str, req: PairApproveRequest) -> dict:
+    session = pairing_store.approve(code, req.wallet)
+    if session is None:
+        raise HTTPException(status_code=404, detail="pairing code not found")
+    if session.status == "expired":
+        raise HTTPException(status_code=410, detail="pairing code expired")
+    return session.as_response()
 
 
 # --- worker loop ----------------------------------------------------------

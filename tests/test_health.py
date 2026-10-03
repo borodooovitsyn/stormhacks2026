@@ -1,4 +1,6 @@
 from fastapi.testclient import TestClient
+from base58 import b58encode
+from nacl.signing import SigningKey
 
 from services.api.app.main import app
 
@@ -13,8 +15,14 @@ def test_health():
 
 def test_contract_endpoints_respond():
     """Every contract endpoint answers with the agreed shape (mock data)."""
-    assert client.post("/auth/nonce", json={"wallet": "w1"}).json()["nonce"]
-    assert client.post("/auth/verify", json={"wallet": "w1", "signature": "s"}).json()["token"]
+    signing_key = SigningKey.generate()
+    wallet = b58encode(bytes(signing_key.verify_key)).decode("ascii")
+    nonce = client.post("/auth/nonce", json={"wallet": wallet}).json()["nonce"]
+    signature = b58encode(signing_key.sign(nonce.encode("utf-8")).signature).decode("ascii")
+    assert client.post(
+        "/auth/verify",
+        json={"wallet": wallet, "signature": signature},
+    ).json()["token"]
     assert client.post("/devices/pair").json()["device_token"]
 
     claim = client.post("/workers/w1/claim").json()
