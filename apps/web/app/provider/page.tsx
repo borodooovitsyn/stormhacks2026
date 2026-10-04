@@ -7,8 +7,8 @@ import { EarningsChart } from "@/components/EarningsChart";
 import { Card, EmptyState, LiveBadge, PageHeader, Stat, sol, shortAddr } from "@/components/ui";
 
 export default function ProviderPage() {
-  const [workerId, setWorkerId] = useState("demo-worker");
   const [nowSeconds, setNowSeconds] = useState<number | null>(null);
+  const wallet = getSession()?.wallet ?? null;
 
   useEffect(() => {
     const update = () => setNowSeconds(Math.floor(Date.now() / 1000));
@@ -20,25 +20,17 @@ export default function ProviderPage() {
     };
   }, []);
 
-  // Resolve the signed-in wallet to its paired worker so earnings match the desktop.
-  useEffect(() => {
-    const session = getSession();
-    if (!session?.wallet) return;
-    api
-      .walletWorkers(session.wallet)
-      .then((r) => {
-        if (r.worker_ids.length) setWorkerId(r.worker_ids[0]);
-      })
-      .catch(() => {});
-  }, []);
-
-  const fetchEarnings = useCallback(() => api.earnings(workerId), [workerId]);
+  // Poll the wallet's AGGREGATE earnings (sum across all its workers) so the web
+  // always matches whatever device/worker the provider is running.
+  const fetchEarnings = useCallback(
+    () => (wallet ? api.walletEarnings(wallet) : api.earnings("demo-worker")),
+    [wallet],
+  );
   const { data, error, loading } = usePolling(fetchEarnings, 3000);
 
   const perMin = data?.series.at(-1)?.cost_usd ?? 0;
 
   // Real devnet payouts for this provider's wallet.
-  const wallet = data?.payout_wallet;
   const [payouts, setPayouts] = useState<{ signature: string; amount_sol: number; ts: number }[]>([]);
   useEffect(() => {
     if (!wallet) return;
@@ -58,15 +50,6 @@ export default function ProviderPage() {
             >
               Download desktop app
             </a>
-            <label className="flex items-center gap-2 text-sm text-muted">
-              Worker
-              <input
-                value={workerId}
-                onChange={(e) => setWorkerId(e.target.value.trim() || "demo-worker")}
-                className="h-10 w-44 rounded-[10px] border border-border bg-surface px-3 text-text outline-none focus:border-accent"
-                aria-label="Worker ID"
-              />
-            </label>
           </div>
         }
       />

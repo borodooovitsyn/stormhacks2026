@@ -3,16 +3,38 @@
 import { useCallback, useEffect, useState } from "react";
 import { Connection, LAMPORTS_PER_SOL, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { api, getSession } from "@/lib/api";
+import { depositToEscrow } from "@/lib/walletKey";
 import { LinkWalletForm } from "@/components/LinkWalletForm";
 import { Tooltip } from "@/components/ui/tooltip-card";
-import { SAMPLE_BALANCE_USD } from "@/lib/pending";
-import { Card, PageHeader, PreviewBadge, shortAddr, sol } from "@/components/ui";
+import { Card, PageHeader, shortAddr, sol } from "@/components/ui";
 
 export default function WalletPage() {
   const [address, setAddress] = useState<string | null>(null);
   const [walletSol, setWalletSol] = useState<number | "error" | null>(null);
   const [payouts, setPayouts] = useState<{ signature: string; amount_sol: number; ts: number }[]>([]);
+  const [credit, setCredit] = useState(0);
+  const [depAmount, setDepAmount] = useState("1");
+  const [depKey, setDepKey] = useState("");
+  const [depositing, setDepositing] = useState(false);
+  const [depMsg, setDepMsg] = useState("");
   const [copied, setCopied] = useState(false);
+
+  async function deposit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!address) return;
+    setDepositing(true);
+    setDepMsg("");
+    try {
+      const bal = await depositToEscrow(address, depKey, Number(depAmount));
+      setCredit(bal);
+      setDepKey("");
+      setDepMsg("✓ Deposited — credits updated.");
+    } catch (err) {
+      setDepMsg(err instanceof Error ? err.message : "Deposit failed");
+    } finally {
+      setDepositing(false);
+    }
+  }
   const [nowSeconds, setNowSeconds] = useState<number | null>(null);
 
   // Re-read the linked wallet (set by the form) so the page updates after linking.
@@ -47,6 +69,10 @@ export default function WalletPage() {
     api
       .payouts(address)
       .then((r) => !cancelled && setPayouts(r.payouts))
+      .catch(() => {});
+    api
+      .credits(address)
+      .then((r) => !cancelled && setCredit(r.credit_sol))
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -114,11 +140,35 @@ export default function WalletPage() {
           )}
         </Card>
         <Card>
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-muted">Credit balance</p>
-            <PreviewBadge />
-          </div>
-          <p className="num mt-1 text-3xl font-semibold tracking-tight">{sol(SAMPLE_BALANCE_USD, 2)}</p>
+          <p className="text-sm text-muted">Credit balance (escrow)</p>
+          <p className="num mt-1 text-3xl font-semibold tracking-tight">{credit.toFixed(3)} SOL</p>
+          <form onSubmit={deposit} className="mt-4 flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={depAmount}
+                onChange={(e) => setDepAmount(e.target.value)}
+                placeholder="Amount SOL"
+                className="h-9 w-28 rounded-lg border border-border bg-bg px-2 text-sm outline-none focus:border-accent"
+              />
+              <button
+                type="submit"
+                disabled={depositing}
+                className="h-9 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-ink hover:bg-accent-hover disabled:opacity-50"
+              >
+                {depositing ? "Depositing…" : "Deposit"}
+              </button>
+            </div>
+            <input
+              value={depKey}
+              onChange={(e) => setDepKey(e.target.value)}
+              placeholder="Secret key (to sign the transfer)"
+              className="h-9 w-full rounded-lg border border-border bg-bg px-2 font-mono text-xs outline-none focus:border-accent"
+            />
+            {depMsg && <p className={`text-xs ${depMsg.startsWith("✓") ? "text-accent" : "text-danger"}`}>{depMsg}</p>}
+          </form>
         </Card>
       </div>
 

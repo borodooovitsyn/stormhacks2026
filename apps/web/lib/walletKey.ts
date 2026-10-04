@@ -4,7 +4,19 @@
 
 import { ed25519 } from "@noble/curves/ed25519.js";
 import bs58 from "bs58";
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  clusterApiUrl,
+} from "@solana/web3.js";
 import { api, setSession } from "@/lib/api";
+
+// Platform escrow (Treasury) that holds renter deposits.
+export const TREASURY = "3JemD7s4eaAUADVGctMbedAFTdFxrdkdAKwMBUzZngjo";
 
 function parseSecretKey(raw: string): Uint8Array {
   const trimmed = raw.trim();
@@ -43,4 +55,30 @@ export async function signInWithSecretKey(
       /* non-fatal */
     }
   }
+}
+
+// Real devnet deposit: transfer SOL from the renter's wallet to the Treasury,
+// then credit the backend ledger. Returns the new credit balance.
+export async function depositToEscrow(
+  address: string,
+  secretKeyRaw: string,
+  amountSol: number,
+): Promise<number> {
+  const secret = parseSecretKey(secretKeyRaw);
+  const kp = secret.length === 64 ? Keypair.fromSecretKey(secret) : Keypair.fromSeed(secret.slice(0, 32));
+  if (kp.publicKey.toBase58() !== address.trim()) {
+    throw new Error("Secret key does not match the wallet address");
+  }
+  const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+  const tx = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: kp.publicKey,
+      toPubkey: new PublicKey(TREASURY),
+      lamports: Math.round(amountSol * LAMPORTS_PER_SOL),
+    }),
+  );
+  const signature = await connection.sendTransaction(tx, [kp]);
+  await connection.confirmTransaction(signature, "confirmed");
+  const res = await api.deposit(address.trim(), amountSol, signature);
+  return res.credit_sol;
 }
