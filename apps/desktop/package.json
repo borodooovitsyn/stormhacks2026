@@ -1,0 +1,13 @@
+{
+  "name": "gpu-share-desktop",
+  "version": "0.1.0",
+  "description": "GPU Share provider desktop app (Electron)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}
