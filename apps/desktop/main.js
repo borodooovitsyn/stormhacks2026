@@ -4,7 +4,10 @@ const path = require("path");
 const { spawn, execSync } = require("child_process");
 
 const REPO_ROOT = path.join(__dirname, "..", "..");
-const VENV_PY = path.join(REPO_ROOT, ".venv", "bin", "python");
+const IS_WIN = process.platform === "win32";
+const VENV_PY = IS_WIN
+  ? path.join(REPO_ROOT, ".venv", "Scripts", "python.exe")
+  : path.join(REPO_ROOT, ".venv", "bin", "python");
 
 let worker = null;
 let win = null;
@@ -30,7 +33,7 @@ ipcMain.handle("config:get", () => ({
 
 ipcMain.handle("gpu:status", () => {
   try {
-    execSync("which nvidia-smi", { stdio: "ignore" });
+    execSync(IS_WIN ? "where nvidia-smi" : "which nvidia-smi", { stdio: "ignore" });
     return { hasGpu: true, label: "NVIDIA GPU detected" };
   } catch {
     return { hasGpu: false, label: "No NVIDIA GPU — CPU / fake mode" };
