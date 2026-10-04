@@ -2,6 +2,7 @@
 
 VENV = .venv
 PYTHON ?= python3.12
+N ?= 3
 PY = $(VENV)/bin/python
 PIP = $(VENV)/bin/pip
 
@@ -16,6 +17,9 @@ api:  ## run the FastAPI backend (docs at http://localhost:8000/docs)
 
 worker:  ## run the GPU worker (fake metrics, needs `make api` running)
 	$(VENV)/bin/python -m services.worker
+
+workers:  ## launch N workers to show one job sharded across GPUs (make workers N=3)
+	bash scripts/run-workers.sh $(N)
 
 whisper-cpu:  ## build the CPU whisper image (any laptop)
 	docker build -t gpu-share/whisper:cpu services/worker/images/whisper
