@@ -1,4 +1,4 @@
-# CoreWhore Web
+# CoreShare Web
 
 Next.js client for GPU Share, including password accounts with Resend email verification and a separate Solana wallet verification flow.
 

@@ -74,7 +74,7 @@ export function Tooltip({
           id={id}
           role="tooltip"
           style={{ transform: `translateX(calc(-50% + ${shift}px))` }}
-          className="absolute bottom-full left-1/2 z-40 mb-2 block w-64 rounded-xl border border-border bg-surface-2 p-3 text-left text-xs font-normal leading-relaxed text-text"
+          className="absolute bottom-full left-1/2 z-40 mb-2 block w-64 rounded-xl border border-border bg-surface-2 p-3 text-left font-sans text-xs font-normal normal-case not-italic leading-relaxed tracking-normal text-wrap text-text"
         >
           {content}
         </span>

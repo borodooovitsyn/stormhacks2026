@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Real italic cut for the CW_ logo (Geist has none, the browser would fake it).
+// Real italic cut for the CS_ logo (Geist has none, the browser would fake it).
 const logoFont = JetBrains_Mono({
   variable: "--font-logo-face",
   subsets: ["latin"],
@@ -24,7 +24,7 @@ const logoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "CoreWhore", template: "%s · CoreWhore" },
+  title: { default: "CoreShare", template: "%s · CoreShare" },
   description: "Rent or share GPU capacity with instant Solana payments.",
 };
 

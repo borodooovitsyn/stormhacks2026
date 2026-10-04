@@ -1,10 +1,16 @@
-export function Logo({ size = "text-2xl" }: { size?: string }) {
+import Image from "next/image";
+
+/** The logo: a static SVG with a transparent background, used on every page. */
+export function Logo({ className = "h-10 w-10" }: { className?: string }) {
   return (
-    <span
-      className={`font-logo font-extrabold italic leading-none tracking-tighter text-accent ${size}`}
-      aria-label="CoreWhore"
-    >
-      CW<span className="cursor" aria-hidden>_</span>
-    </span>
+    <Image
+      src="/coreshare-mark.svg"
+      alt="CoreShare"
+      width={40}
+      height={40}
+      priority
+      unoptimized
+      className={className}
+    />
   );
 }

@@ -35,9 +35,8 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <Link href="/" className="flex items-baseline gap-2.5" aria-label="CoreWhore home">
+        <Link href="/" className="flex items-center" aria-label="CoreShare home">
           <Logo />
-          <span className="hidden text-sm font-semibold tracking-tight text-muted sm:inline">CoreWhore</span>
         </Link>
         <nav className="hidden gap-1 sm:flex" aria-label="Main">
           {LINKS.map((l) => {

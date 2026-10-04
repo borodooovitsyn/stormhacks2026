@@ -16,7 +16,7 @@ export function RentSample() {
       <FloodMap />
       <figcaption className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="num text-sm text-muted">
-          {UNITS} frames · {est.chunks} chunks · ~{est.eta_min} min
+          {UNITS} frames, {est.chunks} chunks, ~{est.eta_min} min
         </span>
         <span className="num text-lg font-semibold text-accent">{sol(est.cost_usd)}</span>
       </figcaption>

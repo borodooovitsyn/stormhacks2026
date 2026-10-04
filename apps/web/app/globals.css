@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* CoreWhore: near-black with a green undertone, one neon accent used only for
+/* CoreShare: near-black with a green undertone, one neon accent used only for
    actions, selection and live state. */
 :root {
   --bg: #080b08;

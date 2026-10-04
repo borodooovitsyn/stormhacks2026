@@ -5,7 +5,6 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useAuth } from "@/components/Providers";
-import { KycPanel } from "@/components/KycPanel";
 import { Tooltip } from "@/components/ui/tooltip-card";
 import { SAMPLE_BALANCE_USD, SAMPLE_PAYOUTS } from "@/lib/pending";
 import { Button, Card, EmptyState, PageHeader, PreviewBadge, sol } from "@/components/ui";
@@ -39,7 +38,7 @@ export default function WalletPage() {
         <Card>
           <EmptyState
             title="No wallet, no wallet page"
-            body="Sign in with Phantom. No email or card needed; you just sign a one-time message."
+            body="Sign in with your Solana wallet. No email or card needed; you just sign a one-time message."
             action={<Button onClick={() => setVisible(true)}>Connect wallet</Button>}
           />
         </Card>
@@ -144,10 +143,6 @@ export default function WalletPage() {
           </fieldset>
           {note && <p role="status" className="mt-3 text-xs text-warn">{note}</p>}
         </Card>
-      </div>
-
-      <div className="mt-4">
-        <KycPanel />
       </div>
 
       <Card className="mt-4">

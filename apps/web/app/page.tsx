@@ -1,5 +1,4 @@
-import { Button, PreviewBadge, sol } from "@/components/ui";
-import { estimateJob } from "@/lib/pending";
+import { Button } from "@/components/ui";
 import { Tooltip } from "@/components/ui/tooltip-card";
 import { GpuSpin } from "@/components/GpuSpin";
 import { SmoothScroll } from "@/components/SmoothScroll";
@@ -47,46 +46,44 @@ const STEPS = [
   },
 ];
 
-// Same sample job as the Rent section below, so the two numbers always agree.
-const SAMPLE_UNITS = 50;
-
 export default function Home() {
-  const sample = estimateJob("blender", SAMPLE_UNITS);
   return (
-    <div className="py-8 sm:py-20">
+    <div className="py-8 sm:pt-20 sm:pb-20">
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
         <div>
           <h1 className="max-w-3xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Rent a GPU by the minute. Or get paid for yours.
+            <Tooltip
+              content="CoreShare is a peer-to-peer GPU marketplace. Renters send a job, we split it into chunks and run them on idle gaming GPUs, and providers get paid in Solana."
+            >
+              <span className="text-accent">CoreShare</span>
+            </Tooltip>{" "}
+            Rent a GPU by the minute. Or get paid for yours
             <span className="cursor text-accent" aria-hidden>_</span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg text-muted">
-            Cloud GPUs are priced for companies. Your gaming rig sits idle most of the day. We match the two and pay by
-            the minute in Solana. No card, no cloud account.
+          <p className="mt-6 max-w-lg text-lg text-muted">
+            Idle gaming rigs meet people who need compute. Billed per minute in Solana. No card, no cloud account.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button href="/rent">Rent a GPU</Button>
             <Button href="/provider" variant="ghost">Put my GPU to work</Button>
           </div>
-          <p className="num mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            <PreviewBadge>Sample</PreviewBadge>
-            <span>
-              Blender render, {sample.chunks} chunks, ~{sample.eta_min} min:
-            </span>
-            <span className="text-lg font-semibold text-accent">{sol(sample.cost_usd)}</span>
-          </p>
         </div>
         <GpuSpin />
       </div>
 
-      <dl className="mt-20 grid gap-8 sm:grid-cols-3">
-        {STEPS.map((s) => (
-          <div key={s.t} className="border-t border-border pt-4">
-            <dt className="font-medium">{s.t}</dt>
-            <dd className="mt-1.5 text-sm text-muted">{s.d}</dd>
-          </div>
-        ))}
-      </dl>
+      <section className="mt-20 grid gap-10 lg:grid-cols-[2fr_3fr] lg:gap-16" aria-labelledby="how">
+        <h2 id="how" className="max-w-xs text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+          Three moves from file to payout.
+        </h2>
+        <dl className="divide-y divide-border">
+          {STEPS.map((s) => (
+            <div key={s.t} className="grid gap-1.5 py-6 first:pt-0 last:pb-0 sm:grid-cols-[14rem_1fr] sm:gap-8">
+              <dt className="text-xl font-medium tracking-tight">{s.t}</dt>
+              <dd className="text-sm text-muted">{s.d}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <div className="mt-20">
         <Stop

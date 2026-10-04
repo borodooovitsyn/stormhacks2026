@@ -35,11 +35,11 @@ async function sendVerificationEmail(email: string, token: string) {
     method: "POST",
     headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.AUTH_EMAIL_FROM ?? "CoreWhore <onboarding@resend.dev>",
+      from: process.env.AUTH_EMAIL_FROM ?? "CoreShare <onboarding@resend.dev>",
       to: [email],
-      subject: "Confirm your CoreWhore account",
+      subject: "Confirm your CoreShare account",
       text: `Confirm your email by opening this link: ${url.toString()}\n\nThis link expires in 30 minutes.`,
-      html: `<p>Confirm your email to finish creating your CoreWhore account.</p><p><a href="${url
+      html: `<p>Confirm your email to finish creating your CoreShare account.</p><p><a href="${url
         .toString()
         .replaceAll("&", "&amp;")}">Confirm email</a></p><p>This link expires in 30 minutes.</p>`,
     }),

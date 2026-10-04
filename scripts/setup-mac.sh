@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # First-run provider setup for macOS. Macs have no NVIDIA GPU -> CPU/fake sharing.
 set -euo pipefail
-echo "== CoreWhore provider setup (macOS) =="
+echo "== CoreShare provider setup (macOS) =="
 if command -v docker >/dev/null 2>&1; then
   echo "Docker found."
 elif command -v brew >/dev/null 2>&1; then

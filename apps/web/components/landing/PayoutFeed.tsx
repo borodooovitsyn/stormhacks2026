@@ -13,16 +13,22 @@ const SAMPLES = [
   { sig: "7Lq3…d4Ye", usd: 0.143 },
 ];
 const VISIBLE = 4;
-const TICK_S = 4;
+// A new payout lands after a random 1-10 s wait, so the feed doesn't tick like a metronome.
+const MIN_GAP_S = 1;
+const MAX_GAP_S = 10;
+// Fixed starting gaps (newest first) so server and client render the same first frame.
+const INITIAL_GAPS = [3, 7, 2];
 
-const ago = (s: number) => (s < 60 ? `${s}s ago` : `${Math.floor(s / 60)} min ago`);
+const randomGap = () => MIN_GAP_S + Math.floor(Math.random() * (MAX_GAP_S - MIN_GAP_S + 1));
+const ago = (s: number) => (s === 0 ? "just now" : s < 60 ? `${s}s ago` : `${Math.floor(s / 60)} min ago`);
 
 export function PayoutFeed() {
   const reduced = useReducedMotion();
   const root = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   // tick = how many rows have arrived; row i was born at tick i.
-  const [tick, setTick] = useState(VISIBLE - 1);
+  // gaps[i] = seconds between row i and the row above it (newest first).
+  const [feed, setFeed] = useState({ tick: VISIBLE - 1, gaps: INITIAL_GAPS });
 
   useEffect(() => {
     const el = root.current;
@@ -35,13 +41,22 @@ export function PayoutFeed() {
   // Tick only while visible, and never under reduced motion (static rows then).
   useEffect(() => {
     if (reduced || !inView) return;
-    const id = setInterval(() => setTick((t) => t + 1), TICK_S * 1000);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      const gap = randomGap();
+      id = setTimeout(() => {
+        setFeed((f) => ({ tick: f.tick + 1, gaps: [gap, ...f.gaps].slice(0, VISIBLE - 1) }));
+        schedule();
+      }, gap * 1000);
+    };
+    schedule();
+    return () => clearTimeout(id);
   }, [reduced, inView]);
 
   const rows = Array.from({ length: VISIBLE }, (_, i) => {
-    const born = tick - i;
-    return { id: born, ...SAMPLES[born % SAMPLES.length], age: i * TICK_S };
+    const born = feed.tick - i;
+    const age = feed.gaps.slice(0, i).reduce((a, b) => a + b, 0);
+    return { id: born, ...SAMPLES[born % SAMPLES.length], age };
   });
 
   return (

@@ -54,7 +54,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async () => {
     if (!publicKey || !signMessage) {
-      setError("Connect a wallet that supports message signing (Phantom).");
+      setError("Connect a wallet that supports message signing.");
       return;
     }
     setSigningIn(true);
@@ -94,7 +94,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const endpoint = useMemo(() => clusterApiUrl("devnet"), []);
-  // Phantom registers itself via the Wallet Standard, so no explicit adapters.
+  // Wallets register themselves via the Wallet Standard, so no explicit adapters.
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={[]} autoConnect>
