@@ -80,3 +80,4 @@ pgdata/
 
 # Electron / node
 apps/desktop/node_modules/
+.impeccable/design.json
