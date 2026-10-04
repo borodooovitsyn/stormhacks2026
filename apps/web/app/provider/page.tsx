@@ -18,7 +18,7 @@ export default function ProviderPage() {
     <>
       <PageHeader
         title="Provider dashboard"
-        subtitle="Earnings from your shared GPU, aggregated per minute and paid out in SOL on devnet."
+        subtitle="Earnings from your shared GPU, aggregated per minute and paid out in SOL."
         action={
           <div className="flex flex-wrap items-center gap-3">
             <a
