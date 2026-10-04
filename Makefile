@@ -1,5 +1,9 @@
 .PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc mps-on settle wallets balance
 
+# Load local dev config (DATABASE_URL etc.) if present, and export to recipes.
+-include .env
+export
+
 VENV = .venv
 PYTHON ?= python3.12
 N ?= 3
