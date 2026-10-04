@@ -56,6 +56,7 @@ class Chunk:
     worker_id: str | None = None
     claimed_at: datetime | None = None
     completed_at: datetime | None = None
+    error: str | None = None
 
 
 @dataclass
@@ -129,6 +130,10 @@ class InMemoryJobQueue:
                 return []
             return [self._chunks[chunk_id] for chunk_id in job.chunk_ids]
 
+    def get_chunk(self, chunk_id: str) -> Chunk | None:
+        with self._lock:
+            return self._chunks.get(chunk_id)
+
     def claim_next(self, worker_id: str) -> Chunk | None:
         with self._lock:
             for chunk in self._chunks.values():
@@ -146,20 +151,15 @@ class InMemoryJobQueue:
                 return None
             chunk.status = "complete"
             chunk.completed_at = utc_now()
+            chunk.error = None
             return chunk
 
-    def has_open_work(self) -> bool:
+    def fail(self, chunk_id: str, error: str) -> Chunk | None:
         with self._lock:
-            return any(chunk.status in {"pending", "claimed"} for chunk in self._chunks.values())
-
-    def ensure_demo_job(self) -> None:
-        if self.has_open_work():
-            return
-        self.create_job(
-            job_id=f"job-demo-{secrets.token_hex(2)}",
-            job_type="segmentation",
-            image="gpu-share/imageproc:cpu",
-            input_url="mock://flood-watch/tile-batch.tif",
-            total_units=6,
-            requested_chunks=6,
-        )
+            chunk = self._chunks.get(chunk_id)
+            if chunk is None:
+                return None
+            chunk.status = "failed"
+            chunk.completed_at = utc_now()
+            chunk.error = error[:1000]
+            return chunk

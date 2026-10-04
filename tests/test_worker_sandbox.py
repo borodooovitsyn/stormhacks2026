@@ -1,4 +1,4 @@
-from services.worker.sandbox import build_docker_command, run_in_sandbox
+from services.worker.sandbox import build_docker_command, docker_executable, run_in_sandbox
 
 
 def test_disables_network():
@@ -20,6 +20,12 @@ def test_mounts_input_readonly_and_output_writable():
 def test_requests_gpu_by_default_and_can_opt_out():
     assert "--gpus" in build_docker_command("img", "/in", "/out")
     assert "--gpus" not in build_docker_command("img", "/in", "/out", gpus=False)
+
+
+def test_docker_executable_honors_override(monkeypatch):
+    monkeypatch.setenv("DOCKER_BIN", "/custom/docker")
+
+    assert docker_executable() == "/custom/docker"
 
 
 def test_image_is_last():
@@ -53,17 +59,17 @@ def test_run_reports_failure():
 
 
 def test_gpu_percent_cap_sets_mps_thread_limit():
-    joined = " ".join(build_docker_command("img", "/in", "/out", gpu_pct=50))
+    joined = " ".join(build_docker_command("img", "/in", "/out", gpu_pct=50, mps=True))
     assert "CUDA_MPS_ACTIVE_THREAD_PERCENTAGE=50" in joined
 
 
 def test_vram_cap_sets_mps_memory_limit():
-    joined = " ".join(build_docker_command("img", "/in", "/out", vram_cap_mb=12288))
+    joined = " ".join(build_docker_command("img", "/in", "/out", vram_cap_mb=12288, mps=True))
     assert "CUDA_MPS_PINNED_DEVICE_MEM_LIMIT=0=12288M" in joined
 
 
 def test_caps_wire_up_the_mps_pipe():
-    joined = " ".join(build_docker_command("img", "/in", "/out", gpu_pct=50))
+    joined = " ".join(build_docker_command("img", "/in", "/out", gpu_pct=50, mps=True))
     assert "/tmp/nvidia-mps:/tmp/nvidia-mps" in joined
     assert "CUDA_MPS_PIPE_DIRECTORY=/tmp/nvidia-mps" in joined
 
@@ -75,4 +81,11 @@ def test_no_caps_means_no_mps_env():
 
 def test_caps_ignored_without_gpu():
     joined = " ".join(build_docker_command("img", "/in", "/out", gpus=False, gpu_pct=50, vram_cap_mb=8192))
+    assert "CUDA_MPS" not in joined
+
+
+def test_caps_ignored_when_mps_is_unavailable():
+    joined = " ".join(
+        build_docker_command("img", "/in", "/out", gpu_pct=50, vram_cap_mb=8192, mps=False)
+    )
     assert "CUDA_MPS" not in joined

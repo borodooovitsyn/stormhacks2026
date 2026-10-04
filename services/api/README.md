@@ -36,27 +36,34 @@ Never commit `.env`, wallets, keypairs, or production secrets. Solana integratio
 | `POST` | `/auth/nonce` | web | create a short-lived wallet nonce |
 | `POST` | `/auth/verify` | web | verify the signed nonce and mint a JWT |
 | `POST` | `/devices/pair` | desktop | create a pending pairing session |
+| `POST` | `/uploads?filename=...` | web | upload the real job input bytes |
 | `POST` | `/workers/{worker_id}/claim` | worker | claim the next pending chunk |
 | `POST` | `/metrics` | worker | record usage and cost |
+| `POST` | `/chunks/{chunk_id}/result` | worker | upload a real result archive |
 | `POST` | `/chunks/{chunk_id}/complete` | worker | complete a claimed chunk |
+| `GET` | `/chunks/{chunk_id}/result` | web | download the result archive |
 | `GET` | `/earnings/{worker_id}` | web, desktop, payments | read provider earnings |
 
 Additive integration endpoints:
 
 - `POST /jobs` queues a job and splits it into chunks.
 - `GET /jobs/{job_id}` returns job, chunk, worker, and result status for the live job view.
-- `GET /downloads/desktop` serves the current desktop app bundle as a zip for demo downloads.
+- `GET /downloads/desktop` serves the latest portable Windows executable from `apps/desktop/dist`.
+  Set `DESKTOP_DOWNLOAD_PATH` when the API and desktop artifact are deployed separately.
 - `GET /devices/pair/{code}` polls a pairing session.
 - `POST /devices/pair/{code}/approve` approves a pairing session from the web client.
 
 ## Job And Metering Flow
 
-Queue a three-chunk job:
+Upload an MP3, then queue one CUDA Whisper job:
 
 ```bash
+curl --data-binary @recording.mp3 \
+  "http://127.0.0.1:8000/uploads?filename=recording.mp3"
+
 curl -X POST http://127.0.0.1:8000/jobs \
   -H 'Content-Type: application/json' \
-  -d '{"job_type":"blender","image":"gpu-share/blender:cuda","input_url":"mock://demo/scene.blend","total_units":50,"requested_chunks":5}'
+  -d '{"job_type":"transcribe","image":"gpu-share/whisper:cuda","input_url":"/uploads/UPLOAD_ID","total_units":1,"requested_chunks":1}'
 ```
 
 Workers receive the same `image` field from `/workers/{worker_id}/claim`. The worker contract is:
@@ -68,15 +75,16 @@ Claim work using a stable provider identifier, not a job identifier:
 curl -X POST http://127.0.0.1:8000/workers/demo-worker/claim
 ```
 
-Use the returned `job_id` when reporting metrics and the returned `chunk_id` when completing work:
+The worker downloads `input_url`, mounts it at `/input`, runs the image with `/output` writable,
+uploads a ZIP, reports metrics, and only then completes the chunk. A failed container is marked failed.
+
+The low-level result and completion calls are:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/metrics \
-  -H 'Content-Type: application/json' \
-  -d '{"worker_id":"demo-worker","job_id":"JOB_ID","gpu_util_pct":75,"vram_used_mb":4096,"cost_usd":0.015,"ts":null}'
-
+curl --data-binary @result.zip \
+  "http://127.0.0.1:8000/chunks/CHUNK_ID/result?filename=result.zip"
 curl -X POST http://127.0.0.1:8000/chunks/CHUNK_ID/complete
-curl http://127.0.0.1:8000/earnings/demo-worker
+curl -OJ http://127.0.0.1:8000/chunks/CHUNK_ID/result
 ```
 
 `worker_id` must match across claim, metrics, and earnings. Jobs are claimed FIFO, so a worker

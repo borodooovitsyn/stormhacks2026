@@ -6,7 +6,18 @@ from services.worker.runner import Sample
 
 
 def make_client():
-    return BackendClient(TestClient(app))
+    http = TestClient(app)
+    http.post(
+        "/jobs",
+        json={
+            "job_type": "whisper",
+            "image": "gpu-share/whisper:cuda",
+            "input_url": "/uploads/test-input",
+            "total_units": 1,
+            "requested_chunks": 1,
+        },
+    ).raise_for_status()
+    return BackendClient(http)
 
 
 def test_claim_returns_a_chunk():
@@ -21,8 +32,9 @@ def test_report_metric_is_accepted():
     assert resp["accepted"] is True
 
 
-def test_complete_marks_chunk_done():
+def test_fail_marks_chunk_failed():
     client = make_client()
     chunk = client.claim("w1")
-    resp = client.complete(chunk["chunk_id"])
-    assert resp["status"] == "complete"
+    resp = client.fail(chunk["chunk_id"], "container failed")
+    assert resp["status"] == "failed"
+    assert resp["error"] == "container failed"
