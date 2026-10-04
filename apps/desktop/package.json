@@ -1,13 +1,34 @@
 {
   "name": "gpu-share-desktop",
   "version": "0.1.0",
-  "description": "GPU Share provider desktop app (Electron)",
+  "description": "CoreWhore provider desktop app (Electron)",
+  "author": "CoreWhore",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "build:worker": "bash ../../scripts/build-worker.sh",
+    "build:worker:win": "powershell -ExecutionPolicy Bypass -File ../../scripts/build-worker.ps1",
+    "pack:mac": "npm run build:worker && electron-builder --mac",
+    "pack:win": "npm run build:worker:win && electron-builder --win",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.corewhore.provider",
+    "productName": "CoreWhore Provider",
+    "files": ["**/*", "!test/**", "!**/*.map"],
+    "extraResources": [
+      { "from": "bin", "to": "worker" },
+      { "from": "../../setup.ps1", "to": "setup/setup.ps1" },
+      { "from": "../../scripts/setup-wsl.sh", "to": "setup/setup-wsl.sh" },
+      { "from": "../../scripts/setup-mac.sh", "to": "setup/setup-mac.sh" }
+    ],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg", "category": "public.app-category.utilities" },
+    "linux": { "target": "AppImage", "category": "Utility" }
   },
   "devDependencies": {
-    "electron": "^33.2.0"
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
   }
 }

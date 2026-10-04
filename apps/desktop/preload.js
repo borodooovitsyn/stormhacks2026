@@ -8,4 +8,8 @@ contextBridge.exposeInMainWorld("desktop", {
   stopWorker: () => ipcRenderer.invoke("worker:stop"),
   onWorkerLog: (cb) => ipcRenderer.on("worker:log", (_e, line) => cb(line)),
   onWorkerState: (cb) => ipcRenderer.on("worker:state", (_e, running) => cb(running)),
+  checkPrereqs: () => ipcRenderer.invoke("prereq:check"),
+  runSetup: () => ipcRenderer.invoke("setup:run"),
+  onSetupLog: (cb) => ipcRenderer.on("setup:log", (_e, line) => cb(line)),
+  onSetupDone: (cb) => ipcRenderer.on("setup:done", (_e, code) => cb(code)),
 });
