@@ -16,7 +16,7 @@ ACCOUNTS: dict[str, str] = {
 # Seed: pre-linked workers (worker_id -> payable wallet). Lets you run the payout
 # demo with fixed worker ids (worker-1/2/3) without pairing 3 desktops.
 SEED_LINKS: dict[str, str] = {
-    # "worker-1": "<payable wallet 1>",
+    "worker-1": "2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B",  # Payable 1
     # "worker-2": "<payable wallet 2>",
     # "worker-3": "<payable wallet 3>",
 }

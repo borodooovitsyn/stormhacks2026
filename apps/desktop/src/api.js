@@ -28,7 +28,12 @@
       if (!r.ok) throw new Error(`earnings failed: ${r.status}`);
       return r.json();
     }
-    return { pair, pairStatus, pairApprove, earnings };
+    async function payouts(wallet) {
+      const r = await doFetch(`${baseUrl}/payouts/${encodeURIComponent(wallet)}`);
+      if (!r.ok) throw new Error(`payouts failed: ${r.status}`);
+      return r.json();
+    }
+    return { pair, pairStatus, pairApprove, earnings, payouts };
   }
 
   if (typeof module !== "undefined" && module.exports) module.exports = { createApi };

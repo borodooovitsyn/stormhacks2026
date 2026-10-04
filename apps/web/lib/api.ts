@@ -138,6 +138,10 @@ export const api = {
     request<{ wallet: string; worker_ids: string[] }>(
       `/wallets/${encodeURIComponent(wallet)}/workers`,
     ),
+  payouts: (wallet: string) =>
+    request<{ wallet: string; payouts: { signature: string; amount_sol: number; ts: number }[] }>(
+      `/payouts/${encodeURIComponent(wallet)}`,
+    ),
   linkAccount: (email: string, wallet: string) =>
     request<{ email: string; wallet: string }>("/accounts", {
       method: "POST",

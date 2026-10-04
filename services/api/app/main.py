@@ -28,6 +28,7 @@ from services.api.app.database import MetricsRepository
 from services.api.app.jobs import InMemoryJobQueue
 from services.api.app.links import LinkStore
 from services.api.app.pairing import PairingStore
+from services.api.app.payouts import read_payouts
 
 app = FastAPI(title="GPU Share API", version="0.1.0")
 
@@ -116,6 +117,11 @@ def devices_pair_approve(code: str, req: PairApproveRequest) -> dict:
 @app.get("/wallets/{wallet}/workers")
 def wallet_workers(wallet: str) -> dict:
     return {"wallet": wallet, "worker_ids": link_store.workers_for_wallet(wallet)}
+
+
+@app.get("/payouts/{wallet}")
+def payouts(wallet: str) -> dict:
+    return {"wallet": wallet, "payouts": read_payouts(wallet)}
 
 
 class AccountRegister(BaseModel):

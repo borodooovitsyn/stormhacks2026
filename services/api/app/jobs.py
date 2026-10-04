@@ -152,8 +152,14 @@ class InMemoryJobQueue:
         with self._lock:
             return any(chunk.status in {"pending", "claimed"} for chunk in self._chunks.values())
 
+    def has_pending_work(self) -> bool:
+        with self._lock:
+            return any(chunk.status == "pending" for chunk in self._chunks.values())
+
     def ensure_demo_job(self) -> None:
-        if self.has_open_work():
+        # Replenish on no *claimable* work; stuck "claimed" chunks (killed workers)
+        # shouldn't starve the demo queue forever.
+        if self.has_pending_work():
             return
         self.create_job(
             job_id=f"job-demo-{secrets.token_hex(2)}",

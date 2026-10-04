@@ -27,6 +27,14 @@ export default function ProviderPage() {
 
   const perMin = data?.series.at(-1)?.cost_usd ?? 0;
 
+  // Real devnet payouts for this provider's wallet.
+  const wallet = data?.payout_wallet;
+  const [payouts, setPayouts] = useState<{ signature: string; amount_sol: number; ts: number }[]>([]);
+  useEffect(() => {
+    if (!wallet) return;
+    api.payouts(wallet).then((r) => setPayouts(r.payouts)).catch(() => {});
+  }, [wallet]);
+
   return (
     <>
       <PageHeader
@@ -108,19 +116,27 @@ export default function ProviderPage() {
         </Card>
 
         <Card>
-          <div className="mb-3 flex items-center gap-2">
-            <h2 className="font-medium">Recent payouts</h2>
-            <PreviewBadge />
-          </div>
-          <ul className="divide-y divide-border">
-            {SAMPLE_PAYOUTS.map((p) => (
-              <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
-                <span className="font-mono text-muted">{p.signature}</span>
-                <span className="text-xs text-muted">{p.ago_min} min ago</span>
-                <span className="num font-medium text-accent">+{sol(p.amount_usd)}</span>
-              </li>
-            ))}
-          </ul>
+          <h2 className="mb-3 font-medium">Recent payouts</h2>
+          {payouts.length === 0 ? (
+            <p className="text-sm text-muted">No payouts yet. Settlement pays this wallet every minute.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {payouts.map((p) => (
+                <li key={p.signature} className="flex items-center justify-between py-2.5 text-sm">
+                  <a
+                    href={`https://explorer.solana.com/tx/${p.signature}?cluster=devnet`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-muted hover:text-accent"
+                  >
+                    {shortAddr(p.signature)}
+                  </a>
+                  <span className="text-xs text-muted">{Math.round((Date.now() / 1000 - p.ts) / 60)} min ago</span>
+                  <span className="num font-medium text-accent">+{sol(p.amount_sol)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </>

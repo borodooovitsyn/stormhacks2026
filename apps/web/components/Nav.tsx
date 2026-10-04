@@ -2,17 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useAuth } from "./Providers";
 import { Logo } from "./Logo";
-
-// The adapter button reads window state, so render it client-side only.
-const WalletMultiButton = dynamic(
-  async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
-  { ssr: false, loading: () => <div className="skeleton h-[38px] w-36" /> },
-);
 
 const LINKS = [
   { href: "/rent", label: "Rent" },
@@ -28,8 +19,6 @@ function avatarLabel(email?: string | null, name?: string | null) {
 
 export function Nav() {
   const pathname = usePathname();
-  const { connected } = useWallet();
-  const { token, signIn, signingIn, signOut, error } = useAuth();
   const { data: account, status: accountStatus } = useSession();
 
   return (
@@ -56,20 +45,6 @@ export function Nav() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          {connected && !token && (
-            <button
-              onClick={signIn}
-              disabled={signingIn}
-              className="h-[38px] rounded-[10px] border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-accent/10 disabled:opacity-50"
-            >
-              {signingIn ? "Check wallet…" : "Verify wallet"}
-            </button>
-          )}
-          {token && !account?.user && (
-            <button onClick={signOut} className="text-sm text-muted hover:text-text">
-              Clear wallet session
-            </button>
-          )}
           {accountStatus === "loading" ? (
             <div className="skeleton h-[38px] w-24" />
           ) : accountStatus === "authenticated" && account?.user ? (
@@ -89,14 +64,8 @@ export function Nav() {
               Sign in
             </Link>
           )}
-          <WalletMultiButton />
         </div>
       </div>
-      {error && (
-        <p role="alert" className="border-t border-danger/30 bg-danger/10 px-4 py-2 text-center text-sm text-danger">
-          Sign-in failed. {error}. Open your wallet and try again.
-        </p>
-      )}
       <nav
         className="flex gap-1 overflow-x-auto border-t border-border px-4 py-2 sm:hidden"
         aria-label="Main mobile"
