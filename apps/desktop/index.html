@@ -2,68 +2,116 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src *; style-src 'self' 'unsafe-inline';" />
-    <title>GPU Share — Provider</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src *; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+    <title>CoreWhore — Provider</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header>
-      <div class="brand">◢ GPU Share</div>
-      <div id="conn" class="pill">—</div>
+    <header class="nav">
+      <div class="brand"><span class="mark">CW_</span><span class="brand-name">CoreWhore</span><span class="brand-sub">Provider</span></div>
+      <div class="nav-right">
+        <span class="pill" id="gpu">—</span>
+        <span class="pill" id="worker-id">—</span>
+        <span class="pill" id="conn">—</span>
+      </div>
     </header>
 
-    <!-- Pairing screen -->
-    <section id="pair-screen" class="screen">
-      <h1>Link this device</h1>
-      <p class="muted">Your wallet lives in the browser. Pair this device to your account to start earning.</p>
-      <button id="pair-btn" class="primary">Sign in / Pair device</button>
-      <div id="pair-info" class="hidden">
-        <div class="code" id="pair-code">——</div>
-        <p class="muted">Approve this code on the website with your wallet.</p>
-        <button id="open-web" class="link">Open website to approve</button>
-        <button id="dev-approve" class="link">Approve (dev / standalone)</button>
-        <div id="pair-status" class="muted">Waiting…</div>
-      </div>
-    </section>
-
-    <!-- Dashboard -->
-    <section id="dashboard" class="screen hidden">
-      <div class="grid">
-        <div class="card">
-          <div class="label">Provider</div>
-          <div class="value" id="worker-id">—</div>
-          <div class="label" style="margin-top:12px">Payout wallet</div>
-          <div class="value small" id="wallet">—</div>
-          <div class="label" style="margin-top:12px">GPU</div>
-          <div class="value small" id="gpu">—</div>
-        </div>
-        <div class="card">
-          <div class="label">Earnings today</div>
-          <div class="value big" id="today">0.0000 SOL</div>
-          <div class="label" style="margin-top:12px">Total</div>
-          <div class="value" id="total">0.0000 SOL</div>
-          <div class="chart" id="chart"></div>
-        </div>
-        <div class="card span2">
-          <div class="row">
-            <div>
-              <div class="label">Sharing</div>
-              <div class="value" id="share-state">Off</div>
-            </div>
-            <button id="toggle" class="primary">Start sharing</button>
+    <main>
+      <!-- First-run setup (packaged app, missing prerequisites) -->
+      <section id="setup-screen" class="screen pair hidden">
+        <div class="card pair-card">
+          <h1>Set up GPU sharing</h1>
+          <p class="sub">Docker (and GPU drivers on Windows) are needed to run jobs. This installs what's missing — you may see a system prompt.</p>
+          <div class="pair-actions" style="margin-top:18px">
+            <button id="setup-btn" class="btn primary">Install prerequisites</button>
+            <button id="setup-skip" class="btn link">Skip — CPU / fake mode</button>
           </div>
+          <pre id="setup-log" class="log hidden" style="margin-top:16px"></pre>
+        </div>
+      </section>
+
+      <!-- Pairing -->
+      <section id="pair-screen" class="screen pair">
+        <div class="card pair-card">
+          <h1>Link this device</h1>
+          <p class="sub">Your wallet lives in the browser. Pair this device to your account to start earning.</p>
+          <button id="pair-btn" class="btn primary" style="margin-top:18px">Sign in / Pair device</button>
+          <div id="pair-info" class="hidden">
+            <div class="code" id="pair-code">——</div>
+            <p class="sub">Approve this code on the website with your wallet.</p>
+            <div class="pair-actions">
+              <button id="open-web" class="btn ghost">Open website to approve</button>
+              <button id="dev-approve" class="btn link">Approve (dev)</button>
+            </div>
+            <div id="pair-status" class="sub">Waiting…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard -->
+      <section id="dashboard" class="screen hidden">
+        <div class="page-header">
+          <div>
+            <h1>Provider dashboard</h1>
+            <p class="sub">Earnings from your shared GPU, aggregated per minute, paid in SOL on devnet.</p>
+          </div>
+          <button id="toggle" class="btn primary">Start sharing</button>
+        </div>
+
+        <div class="card">
+          <div class="earn-head">
+            <div>
+              <div class="label">Earned today</div>
+              <div class="hero num" id="today">$0.0000</div>
+            </div>
+            <div class="stat-group">
+              <div><div class="label">All time</div><div class="stat-val num" id="total">$0.0000</div></div>
+              <div><div class="label">Last minute</div><div class="stat-val num" id="permin">$0.0000</div></div>
+            </div>
+            <span class="badge"><span class="live-dot" id="live"></span><span id="share-state">Offline</span></span>
+          </div>
+          <div class="chart-wrap" id="chart-wrap">
+            <svg id="chart" viewBox="0 0 600 220" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+          <div class="empty hidden" id="empty">
+            <p class="empty-title">Nothing earned yet</p>
+            <p class="sub" style="margin-top:4px">Your GPU is napping. Start sharing and the first minute of earnings lands here.</p>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h2 class="card-title">Payout wallet</h2>
+            <p class="addr" id="wallet">—</p>
+            <p class="sub" style="margin-top:8px">Linked automatically when you pair this device.</p>
+          </div>
+          <div class="card">
+            <div class="card-title-row">
+              <h2 class="card-title">Recent payouts</h2>
+              <span class="preview" title="Waiting on the payments backend; sample data">Preview data</span>
+            </div>
+            <ul class="payouts" id="payouts"></ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">GPU share</h2>
           <div class="share-cap">
             <label class="label">Share <span id="pct-val">50</span>% of GPU — you keep the rest</label>
             <input type="range" id="pct" min="10" max="100" step="10" value="50" />
             <label class="label">VRAM cap (MB, optional)
               <input type="number" id="vram" placeholder="e.g. 8192" />
             </label>
-            <div class="muted" id="cap-note">Enforced via NVIDIA MPS on the GPU box (soft cap elsewhere)</div>
+            <div class="sub" id="cap-note">Enforced via NVIDIA MPS on the GPU box (soft cap elsewhere)</div>
           </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Worker log</h2>
           <pre id="log" class="log"></pre>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
 
     <script src="src/api.js"></script>
     <script src="renderer.js"></script>

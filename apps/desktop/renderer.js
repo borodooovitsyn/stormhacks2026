@@ -1,6 +1,5 @@
 let cfg = null;
 let api = null;
-let paired = false;
 let sharing = false;
 
 const $ = (id) => document.getElementById(id);
@@ -16,8 +15,37 @@ async function init() {
     log.scrollTop = log.scrollHeight;
   });
   window.desktop.onWorkerState((running) => setSharing(running));
+  await maybeSetup();
 }
 
+async function maybeSetup() {
+  if (!cfg.isPackaged) return;
+  const { docker } = await window.desktop.checkPrereqs();
+  if (docker) return;
+  $("pair-screen").classList.add("hidden");
+  $("setup-screen").classList.remove("hidden");
+}
+
+$("setup-btn").onclick = () => {
+  const el = $("setup-log");
+  el.classList.remove("hidden");
+  el.textContent = "Starting setup…\n";
+  window.desktop.onSetupLog((l) => {
+    el.textContent += l;
+    el.scrollTop = el.scrollHeight;
+  });
+  window.desktop.onSetupDone((c) => {
+    el.textContent += `\n[setup finished: ${c}] — restart the app to continue.\n`;
+  });
+  window.desktop.runSetup();
+};
+
+$("setup-skip").onclick = () => {
+  $("setup-screen").classList.add("hidden");
+  $("pair-screen").classList.remove("hidden");
+};
+
+/* --- pairing (device code -> approve on web -> poll for token) --- */
 let pairCode = null;
 let pollTimer = null;
 
@@ -29,7 +57,7 @@ $("pair-btn").onclick = async () => {
     pairCode = res.code;
     $("pair-code").textContent = res.code || "——";
     if (res.status === "approved" && res.device_token) {
-      onApproved(); // mock fast-path
+      onApproved();
     } else {
       $("pair-status").textContent = "Waiting for approval on the website…";
       pollTimer = setInterval(pollPairing, 1500);
@@ -70,7 +98,6 @@ $("open-web").onclick = () => {
   $("pair-status").textContent = "Browser opened. Approve code " + pairCode + " on the website.";
 };
 
-// Dev-only: simulate the website approving this device, for standalone testing against P1.
 $("dev-approve").onclick = async () => {
   if (!pairCode) return;
   try {
@@ -81,39 +108,70 @@ $("dev-approve").onclick = async () => {
   }
 };
 
+/* --- dashboard --- */
 async function enterDashboard() {
-  paired = true;
   $("pair-screen").classList.add("hidden");
   $("dashboard").classList.remove("hidden");
   $("worker-id").textContent = cfg.workerId;
   const gpu = await window.desktop.getGpuStatus();
-  $("gpu").textContent = gpu.label;
+  $("gpu").textContent = gpu.hasGpu ? "NVIDIA GPU" : "CPU / fake";
+  renderPayouts();
   refreshEarnings();
   setInterval(refreshEarnings, 3000);
+}
+
+function renderPayouts() {
+  $("payouts").innerHTML = SAMPLE_PAYOUTS.map(
+    (p) =>
+      `<li><span class="sig">${p.sig}</span><span class="ago">${p.ago} min ago</span><span class="amt num">+${usd(p.amount)}</span></li>`,
+  ).join("");
 }
 
 async function refreshEarnings() {
   try {
     const e = await api.earnings(cfg.workerId);
-    $("today").textContent = money(e.earnings_today_usd);
-    $("total").textContent = money(e.earnings_total_usd);
-    $("wallet").textContent = e.payout_wallet || "—";
-    drawChart((e.series || []).map((p) => p.cost_usd));
+    const series = (e.series || []).map((p) => p.cost_usd);
+    $("today").textContent = usd(e.earnings_today_usd);
+    $("total").textContent = usd(e.earnings_total_usd);
+    $("permin").textContent = usd(series.at(-1) || 0);
+    $("wallet").textContent = shortAddr(e.payout_wallet);
+    $("wallet").title = e.payout_wallet || "";
+    drawArea(series);
   } catch (_e) {
     $("conn").textContent = cfg.apiUrl + " (offline?)";
   }
 }
 
-function drawChart(values) {
-  const max = Math.max(0.0001, ...values);
-  $("chart").innerHTML = values
-    .map((v) => `<span style="height:${Math.round((v / max) * 100)}%"></span>`)
+function drawArea(values) {
+  const W = 600, H = 220, pad = 10;
+  const empty = values.length === 0 || Math.max(...values) <= 0;
+  $("empty").classList.toggle("hidden", !empty);
+  $("chart-wrap").classList.toggle("hidden", empty);
+  if (empty) return;
+
+  const max = Math.max(...values, 0.0001);
+  const n = values.length;
+  const x = (i) => (n === 1 ? W / 2 : pad + (i * (W - 2 * pad)) / (n - 1));
+  const y = (v) => H - pad - (v / max) * (H - 2 * pad);
+  const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+  const line = `M${pts.join(" L")}`;
+  const area = `M${x(0).toFixed(1)},${H - pad} L${pts.join(" L")} L${x(n - 1).toFixed(1)},${H - pad} Z`;
+  const grid = [0.25, 0.5, 0.75]
+    .map((f) => `<line x1="0" x2="${W}" y1="${(H * f).toFixed(0)}" y2="${(H * f).toFixed(0)}" stroke="var(--border)" stroke-width="1" vector-effect="non-scaling-stroke"/>`)
     .join("");
+  $("chart").innerHTML =
+    `<defs><linearGradient id="earn" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>` +
+    `<stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>` +
+    grid +
+    `<path d="${area}" fill="url(#earn)"/>` +
+    `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
 }
 
 function setSharing(on) {
   sharing = on;
-  $("share-state").textContent = on ? "On" : "Off";
+  $("share-state").textContent = on ? "Live" : "Offline";
+  $("live").classList.toggle("on", on);
   $("toggle").textContent = on ? "Stop sharing" : "Start sharing";
   $("toggle").classList.toggle("danger", on);
 }

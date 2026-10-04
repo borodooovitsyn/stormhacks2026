@@ -18,6 +18,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+    "pyinstaller>=6.0",
 ]
 
 # One root project covers all Python code: services/api, services/worker, payments.
