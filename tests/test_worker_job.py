@@ -8,6 +8,7 @@ class SpyClient:
     def __init__(self):
         self.metrics = []
         self.completed = []
+        self.failed = []
 
     def claim(self, worker_id):
         return {"chunk_id": "c1", "job_id": "j1", "job_type": "whisper"}
@@ -17,6 +18,9 @@ class SpyClient:
 
     def complete(self, chunk_id):
         self.completed.append(chunk_id)
+
+    def fail(self, chunk_id, error):
+        self.failed.append((chunk_id, error))
 
 
 def test_meters_real_duration_and_completes():
@@ -57,7 +61,7 @@ def test_run_job_once_skips_idle_claim():
     assert spy.completed == []
 
 
-def test_failed_job_is_reported_but_still_completes():
+def test_failed_job_is_reported_and_not_completed():
     spy = SpyClient()
     summary = run_job_once(
         spy, "w1",
@@ -67,4 +71,19 @@ def test_failed_job_is_reported_but_still_completes():
         clock=iter([0.0, 2.0]).__next__,
     )
     assert summary["ok"] is False
-    assert spy.completed == ["c1"]
+    assert spy.completed == []
+    assert spy.failed == [("c1", "workload failed")]
+
+
+def test_job_exception_is_sent_to_backend():
+    spy = SpyClient()
+    summary = run_job_once(
+        spy,
+        "w1",
+        rate_usd_per_hour=0.50,
+        run_job=lambda chunk: (_ for _ in ()).throw(RuntimeError("docker exploded")),
+        sample=lambda: (0.0, 0),
+        clock=iter([0.0, 2.0]).__next__,
+    )
+    assert summary["ok"] is False
+    assert spy.failed == [("c1", "docker exploded")]

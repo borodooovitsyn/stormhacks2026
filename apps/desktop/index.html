@@ -24,7 +24,7 @@
           <p class="sub">Docker (and GPU drivers on Windows) are needed to run jobs. This installs what's missing — you may see a system prompt.</p>
           <div class="pair-actions" style="margin-top:18px">
             <button id="setup-btn" class="btn primary">Install prerequisites</button>
-            <button id="setup-skip" class="btn link">Skip — CPU / fake mode</button>
+            <button id="setup-skip" class="btn link">Skip for now</button>
           </div>
           <pre id="setup-log" class="log hidden" style="margin-top:16px"></pre>
         </div>
@@ -102,7 +102,7 @@
             <label class="label">VRAM cap (MB, optional)
               <input type="number" id="vram" placeholder="e.g. 8192" />
             </label>
-            <div class="sub" id="cap-note">Enforced via NVIDIA MPS on the GPU box (soft cap elsewhere)</div>
+            <div class="sub" id="cap-note">Linux providers use NVIDIA MPS caps. Windows Docker jobs use the full GPU.</div>
           </div>
         </div>
 

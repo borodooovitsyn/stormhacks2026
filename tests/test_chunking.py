@@ -25,7 +25,7 @@ def test_queue_claims_each_chunk_once():
     job = queue.create_job(
         job_type="segmentation",
         image="gpu-share/imageproc:cpu",
-        input_url="mock://batch.tif",
+        input_url="/uploads/batch-input",
         total_units=4,
         requested_chunks=2,
         job_id="job-test",
@@ -50,7 +50,7 @@ def test_queue_marks_claimed_chunk_complete():
     queue.create_job(
         job_type="segmentation",
         image="gpu-share/imageproc:cpu",
-        input_url="mock://batch.tif",
+        input_url="/uploads/batch-input",
         total_units=1,
         requested_chunks=1,
         job_id="job-one",

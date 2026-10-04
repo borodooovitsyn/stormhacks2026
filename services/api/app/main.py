@@ -17,11 +17,12 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from services.api.app.artifacts import ArtifactStore, ArtifactTooLarge
 from services.api.app.auth import AuthError, AuthService
 from services.api.app.database import MetricsRepository
 from services.api.app.jobs import InMemoryJobQueue
@@ -41,6 +42,7 @@ job_queue = InMemoryJobQueue()
 metrics_repo = MetricsRepository()
 auth_service = AuthService()
 pairing_store = PairingStore()
+artifact_store = ArtifactStore()
 
 
 def _now() -> str:
@@ -111,11 +113,15 @@ def devices_pair_approve(code: str, req: PairApproveRequest) -> dict:
 # --- worker loop ----------------------------------------------------------
 
 class JobCreateRequest(BaseModel):
-    job_type: str = "segmentation"
-    image: str = "gpu-share/imageproc:cpu"
-    input_url: str = "mock://flood-watch/tile-batch.tif"
-    total_units: int = Field(default=6, ge=1)
-    requested_chunks: int = Field(default=6, ge=1)
+    job_type: str = "transcribe"
+    image: str = "gpu-share/whisper:cuda"
+    input_url: str = Field(min_length=1)
+    total_units: int = Field(default=1, ge=1)
+    requested_chunks: int = Field(default=1, ge=1)
+
+
+class ChunkFailure(BaseModel):
+    error: str = Field(min_length=1, max_length=1000)
 
 
 class MetricSample(BaseModel):
@@ -145,6 +151,35 @@ def create_job(req: JobCreateRequest) -> dict:
     }
 
 
+@app.post("/uploads")
+async def upload_input(request: Request, filename: str = Query(min_length=1)) -> dict:
+    try:
+        artifact = await artifact_store.save_input(filename, request.stream())
+    except ArtifactTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    except (FileExistsError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "upload_id": artifact.artifact_id,
+        "filename": artifact.filename,
+        "size": artifact.size,
+        "input_url": f"/uploads/{artifact.artifact_id}",
+    }
+
+
+@app.get("/uploads/{upload_id}")
+def download_input(upload_id: str) -> FileResponse:
+    artifact = artifact_store.input(upload_id)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="input artifact not found")
+    return FileResponse(
+        artifact.path,
+        media_type="application/octet-stream",
+        filename=artifact.filename,
+        headers={"X-Artifact-Filename": artifact.filename},
+    )
+
+
 @app.get("/jobs/{job_id}")
 def get_job(job_id: str) -> dict:
     job = job_queue.get_job(job_id)
@@ -154,7 +189,16 @@ def get_job(job_id: str) -> dict:
     chunks = job_queue.chunks_for_job(job_id)
     complete = sum(1 for chunk in chunks if chunk.status == "complete")
     claimed = sum(1 for chunk in chunks if chunk.status == "claimed")
-    status = "complete" if complete == len(chunks) else "running" if claimed else "queued"
+    failed = sum(1 for chunk in chunks if chunk.status == "failed")
+    status = (
+        "failed"
+        if failed
+        else "complete"
+        if complete == len(chunks)
+        else "running"
+        if claimed
+        else "queued"
+    )
 
     return {
         "job_id": job.job_id,
@@ -176,7 +220,12 @@ def get_job(job_id: str) -> dict:
                 "status": chunk.status,
                 "start_unit": chunk.start_unit,
                 "end_unit": chunk.end_unit,
-                "result_url": f"mock://results/{chunk.chunk_id}.zip" if chunk.status == "complete" else None,
+                "result_url": (
+                    f"/chunks/{chunk.chunk_id}/result"
+                    if chunk.status == "complete" and artifact_store.result(chunk.chunk_id)
+                    else None
+                ),
+                "error": chunk.error,
             }
             for chunk in chunks
         ],
@@ -185,7 +234,6 @@ def get_job(job_id: str) -> dict:
 
 @app.post("/workers/{worker_id}/claim")
 def claim_chunk(worker_id: str) -> dict:
-    job_queue.ensure_demo_job()
     chunk = job_queue.claim_next(worker_id)
     if chunk is None:
         return {
@@ -222,10 +270,54 @@ def post_metrics(sample: MetricSample) -> dict:
 
 @app.post("/chunks/{chunk_id}/complete")
 def complete_chunk(chunk_id: str) -> dict:
+    if artifact_store.result(chunk_id) is None:
+        raise HTTPException(status_code=409, detail="result artifact must be uploaded first")
     chunk = job_queue.complete(chunk_id)
     if chunk is None:
         raise HTTPException(status_code=404, detail="chunk not found")
     return {"chunk_id": chunk_id, "status": "complete"}
+
+
+@app.post("/chunks/{chunk_id}/result")
+async def upload_chunk_result(
+    chunk_id: str,
+    request: Request,
+    filename: str = Query(default="result.zip", min_length=1),
+) -> dict:
+    if job_queue.get_chunk(chunk_id) is None:
+        raise HTTPException(status_code=404, detail="chunk not found")
+    try:
+        artifact = await artifact_store.save_result(chunk_id, filename, request.stream())
+    except ArtifactTooLarge as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    except (FileExistsError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "chunk_id": chunk_id,
+        "filename": artifact.filename,
+        "size": artifact.size,
+        "result_url": f"/chunks/{chunk_id}/result",
+    }
+
+
+@app.get("/chunks/{chunk_id}/result")
+def download_chunk_result(chunk_id: str) -> FileResponse:
+    artifact = artifact_store.result(chunk_id)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="result artifact not found")
+    return FileResponse(
+        artifact.path,
+        media_type="application/zip",
+        filename=artifact.filename,
+    )
+
+
+@app.post("/chunks/{chunk_id}/fail")
+def fail_chunk(chunk_id: str, failure: ChunkFailure) -> dict:
+    chunk = job_queue.fail(chunk_id, failure.error)
+    if chunk is None:
+        raise HTTPException(status_code=404, detail="chunk not found")
+    return {"chunk_id": chunk_id, "status": "failed", "error": chunk.error}
 
 
 # --- earnings (read by both web and desktop) ------------------------------

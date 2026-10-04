@@ -114,7 +114,7 @@ async function enterDashboard() {
   $("dashboard").classList.remove("hidden");
   $("worker-id").textContent = cfg.workerId;
   const gpu = await window.desktop.getGpuStatus();
-  $("gpu").textContent = gpu.hasGpu ? "NVIDIA GPU" : "CPU / fake";
+  $("gpu").textContent = gpu.hasGpu ? "NVIDIA GPU" : "No NVIDIA GPU";
   renderPayouts();
   refreshEarnings();
   setInterval(refreshEarnings, 3000);

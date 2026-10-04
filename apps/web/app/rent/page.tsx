@@ -7,7 +7,7 @@ import { WORKLOADS, estimateJob, type WorkloadPreset } from "@/lib/pending";
 import { Button, Card, PageHeader, PreviewBadge, sol } from "@/components/ui";
 import { Tooltip } from "@/components/ui/tooltip-card";
 
-const PRESETS: WorkloadPreset[] = ["transcribe", "images", "blender", "custom"];
+const PRESETS: WorkloadPreset[] = ["transcribe", "custom"];
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -32,7 +32,7 @@ export default function RentPage() {
   const canRun = files.length > 0 && image.trim().length > 0;
 
   const addFiles = (list: FileList | null) => {
-    if (list) setFiles((f) => [...f, ...Array.from(list)]);
+    if (list?.length) setFiles([list[0]]);
   };
 
   const selectPreset = (next: WorkloadPreset) => {
@@ -41,22 +41,25 @@ export default function RentPage() {
   };
 
   const run = async () => {
+    const file = files[0];
+    if (!file) return;
     setRunning(true);
     setError(null);
     const params = new URLSearchParams({
       type: preset,
       units: String(estimateUnits),
-      chunks: String(est.chunks),
+      chunks: "1",
       image: image.trim(),
       files: String(files.length),
     });
     try {
+      const uploaded = await api.uploadInput(file);
       const created = await api.createJob({
         job_type: preset,
         image: image.trim(),
-        input_url: `mock://web-upload/${files.map((file) => encodeURIComponent(file.name)).join(",")}`,
-        total_units: estimateUnits,
-        requested_chunks: Math.max(1, est.chunks),
+        input_url: uploaded.input_url,
+        total_units: 1,
+        requested_chunks: 1,
       });
       router.push(`/jobs/${created.job_id}?${params.toString()}`);
     } catch (err) {
@@ -70,8 +73,7 @@ export default function RentPage() {
     <>
       <PageHeader
         title="New job"
-        subtitle="Bring a container image and input files. Every workload reads /input and writes /output."
-        action={<PreviewBadge>Needs image field in API</PreviewBadge>}
+        subtitle="Upload an MP3. A Windows GPU worker transcribes it and returns a downloadable result."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
@@ -156,7 +158,6 @@ export default function RentPage() {
                   <input
                     ref={input}
                     type="file"
-                    multiple
                     accept={meta.accepts}
                     className="hidden"
                     onChange={(event) => addFiles(event.target.files)}

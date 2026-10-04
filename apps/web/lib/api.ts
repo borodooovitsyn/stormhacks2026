@@ -90,10 +90,11 @@ export type JobChunkStatus = {
   image: string;
   input_url: string;
   worker_id: string | null;
-  status: "pending" | "claimed" | "complete";
+  status: "pending" | "claimed" | "complete" | "failed";
   start_unit: number;
   end_unit: number;
   result_url: string | null;
+  error: string | null;
 };
 
 export type JobStatus = {
@@ -101,7 +102,7 @@ export type JobStatus = {
   job_type: string;
   image: string;
   input_url: string;
-  status: "queued" | "running" | "complete";
+  status: "queued" | "running" | "complete" | "failed";
   total_units: number;
   chunk_count: number;
   chunks_complete: number;
@@ -112,6 +113,13 @@ export type PairResult = {
   code: string;
   device_token: string;
   status: "pending" | "approved";
+};
+
+export type UploadResult = {
+  upload_id: string;
+  filename: string;
+  size: number;
+  input_url: string;
 };
 
 export const api = {
@@ -139,8 +147,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify(job),
     }),
+  uploadInput: (file: File) =>
+    request<UploadResult>(`/uploads?filename=${encodeURIComponent(file.name)}`, {
+      method: "POST",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    }),
   job: (jobId: string) =>
     request<JobStatus>(`/jobs/${encodeURIComponent(jobId)}`),
+  resultUrl: (resultPath: string) => `${API_URL}${resultPath}`,
 };
 
 export const desktopDownloadUrl = `${API_URL}/downloads/desktop`;

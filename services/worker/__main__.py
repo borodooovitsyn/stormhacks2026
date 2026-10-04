@@ -1,78 +1,127 @@
-"""Live worker: `python -m services.worker` against a running API.
-
-Default: fake streaming metrics (any laptop).
-Set INPUT_DIR (+ optional JOB_TYPE) to run real jobs in the hardened sandbox.
-"""
+"""Real worker: download input, run a sandboxed container, upload its output."""
 
 from __future__ import annotations
 
 import os
-import tempfile
+import shutil
 import time
+from collections.abc import Callable
+from pathlib import Path
+from uuid import uuid4
 
 import httpx
 
 from services.worker.client import BackendClient
 from services.worker.gpu import has_nvidia_gpu, sample_gpu
 from services.worker.jobs import resolve_image
-from services.worker.loop import run_job_once, run_one
-from services.worker.runner import fake_run, gpu_run
-from services.worker.sandbox import run_in_sandbox
+from services.worker.loop import run_job_once
+from services.worker.sandbox import SandboxResult, run_in_sandbox
 
 
-def _fake_sample() -> tuple[float, int]:
+def _empty_sample() -> tuple[float, int]:
     return 0.0, 0
+
+
+def worker_storage_dir() -> Path:
+    configured = os.environ.get("WORKER_STORAGE_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    if os.name == "nt":
+        return Path.home() / "Documents" / "CoreShare" / "worker-jobs"
+    return Path.home() / ".coreshare" / "worker-jobs"
+
+
+def execute_chunk(
+    client: BackendClient,
+    chunk: dict,
+    *,
+    has_gpu: bool,
+    gpu_pct: int | None = None,
+    vram_cap_mb: int | None = None,
+    sandbox_runner: Callable[..., SandboxResult] = run_in_sandbox,
+) -> bool:
+    storage_dir = worker_storage_dir()
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    root = storage_dir / f"job-{uuid4().hex}"
+    root.mkdir()
+    try:
+        input_dir = root / "input"
+        output_dir = root / "output"
+        input_dir.mkdir()
+        output_dir.mkdir()
+
+        downloaded = client.download_input(chunk["input_url"], input_dir)
+        image = resolve_image(
+            chunk,
+            gpu=has_gpu,
+            default_job_type=chunk["job_type"],
+        )
+        print(f"running {chunk['chunk_id']} with {image} ({downloaded.name})")
+        execution = sandbox_runner(
+            image,
+            str(input_dir),
+            str(output_dir),
+            gpus=has_gpu,
+            gpu_pct=gpu_pct,
+            vram_cap_mb=vram_cap_mb,
+        )
+        output = execution.stdout.strip() or execution.stderr.strip()
+        if output:
+            print(output[-2000:])
+        if not execution.ok:
+            raise RuntimeError(output[-1000:] or "Docker workload failed")
+        if not any(path.is_file() for path in output_dir.rglob("*")):
+            raise RuntimeError("workload produced no files in /output")
+
+        archive = shutil.make_archive(str(root / "result"), "zip", output_dir)
+        client.upload_result(chunk["chunk_id"], archive)
+        return True
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 
 def main() -> None:
     base = os.environ.get("API_URL", "http://localhost:8000")
     worker_id = os.environ.get("WORKER_ID", "worker-local")
     rate = float(os.environ.get("RATE_USD_PER_HOUR", "0.50"))
-    input_dir = os.environ.get("INPUT_DIR") or os.environ.get("AUDIO_DIR")
-    job_type = os.environ.get("JOB_TYPE", "whisper")  # until backend serves real job_types
-    duration = float(os.environ.get("WORKER_DURATION", "20"))
-    interval = float(os.environ.get("WORKER_INTERVAL", "2"))
     gpu_pct = int(os.environ["GPU_SHARE_PCT"]) if os.environ.get("GPU_SHARE_PCT") else None
     vram_cap_mb = int(os.environ["VRAM_CAP_MB"]) if os.environ.get("VRAM_CAP_MB") else None
 
-    real = has_nvidia_gpu()
-    sampler = sample_gpu if real else _fake_sample
+    has_gpu = has_nvidia_gpu()
+    sampler = sample_gpu if has_gpu else _empty_sample
+    mode = "real Docker GPU jobs" if has_gpu else "real Docker CPU jobs"
+    print(f"worker {worker_id} -> {base} @ ${rate}/hr | mode: {mode} (Ctrl-C to stop)")
 
-    if input_dir:
-        mode = f"real {job_type} jobs from {input_dir}" + (" (GPU)" if real else " (CPU)")
-    else:
-        mode = "fake streaming (real GPU)" if real else "fake streaming"
-    cap = ""
-    if gpu_pct or vram_cap_mb:
-        parts = [f"{gpu_pct}% GPU" if gpu_pct else "", f"{vram_cap_mb}MB VRAM" if vram_cap_mb else ""]
-        cap = " | share cap: " + ", ".join(p for p in parts if p)
-    print(f"worker {worker_id} -> {base} @ ${rate}/hr | mode: {mode}{cap} (Ctrl-C to stop)")
-
-    with httpx.Client(base_url=base, timeout=120) as http:
+    with httpx.Client(base_url=base, timeout=600) as http:
         client = BackendClient(http)
         while True:
-            if input_dir:
-                out = tempfile.mkdtemp()
+            def run_job(chunk: dict) -> bool:
+                return execute_chunk(
+                    client,
+                    chunk,
+                    has_gpu=has_gpu,
+                    gpu_pct=gpu_pct,
+                    vram_cap_mb=vram_cap_mb,
+                )
 
-                def run_job(chunk: dict, output_dir: str = out) -> bool:
-                    image = resolve_image(chunk, gpu=real, default_job_type=job_type)
-                    res = run_in_sandbox(image, input_dir, output_dir, gpus=real,
-                                         gpu_pct=gpu_pct, vram_cap_mb=vram_cap_mb)
-                    print(res.stdout.strip() or res.stderr.strip()[-300:])
-                    return res.ok
-
-                result = run_job_once(client, worker_id, rate_usd_per_hour=rate, run_job=run_job, sample=sampler)
-            else:
-                samples = gpu_run(duration, interval, rate) if real else fake_run(duration, interval, rate)
-                result = run_one(client, worker_id, samples, interval_seconds=interval, sleep=time.sleep)
+            try:
+                result = run_job_once(
+                    client,
+                    worker_id,
+                    rate_usd_per_hour=rate,
+                    run_job=run_job,
+                    sample=sampler,
+                )
+            except (httpx.HTTPError, OSError) as exc:
+                print(f"worker communication error: {exc}")
+                time.sleep(3)
+                continue
 
             if result.get("idle"):
-                print("no work available, waiting…")
                 time.sleep(3)
             else:
                 print(result)
-                if input_dir:
-                    time.sleep(2)
+                time.sleep(1)
 
 
 if __name__ == "__main__":

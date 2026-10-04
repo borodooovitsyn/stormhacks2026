@@ -1,4 +1,4 @@
-"""GPU sampling via nvidia-smi, with fake fallback on non-NVIDIA machines."""
+"""GPU detection and sampling via nvidia-smi."""
 
 from __future__ import annotations
 

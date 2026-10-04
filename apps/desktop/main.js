@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
-const { appendFileSync, mkdirSync } = require("fs");
+const { appendFileSync, existsSync, mkdirSync } = require("fs");
 const path = require("path");
 const { spawn, execSync } = require("child_process");
 
@@ -132,6 +132,7 @@ function workerSpawn(env) {
 }
 
 function hasCmd(command) {
+  if (command === "docker" && dockerBin()) return true;
   try {
     execSync(IS_WIN ? `where ${command}` : `which ${command}`, { stdio: "ignore" });
     return true;
@@ -140,11 +141,34 @@ function hasCmd(command) {
   }
 }
 
+function dockerBin() {
+  if (!IS_WIN) return null;
+  const candidates = [
+    process.env.DOCKER_BIN,
+    process.env.LOCALAPPDATA && path.join(
+      process.env.LOCALAPPDATA,
+      "Programs",
+      "DockerDesktop",
+      "resources",
+      "bin",
+      "docker.exe",
+    ),
+    process.env.ProgramFiles && path.join(
+      process.env.ProgramFiles,
+      "Docker",
+      "Docker",
+      "resources",
+      "bin",
+      "docker.exe",
+    ),
+  ].filter(Boolean);
+  return candidates.find((candidate) => existsSync(candidate)) || null;
+}
+
 ipcMain.handle("config:get", () => ({
   apiUrl: process.env.API_URL || "http://localhost:8000",
   webUrl: process.env.WEB_URL || "http://localhost:3000",
   workerId: process.env.WORKER_ID || "worker-local",
-  inputDir: process.env.INPUT_DIR || "",
   isPackaged: app.isPackaged,
 }));
 
@@ -155,7 +179,7 @@ ipcMain.handle("gpu:status", () => {
     execSync(IS_WIN ? "where nvidia-smi" : "which nvidia-smi", { stdio: "ignore" });
     return { hasGpu: true, label: "NVIDIA GPU detected" };
   } catch {
-    return { hasGpu: false, label: "No NVIDIA GPU - CPU / fake mode" };
+    return { hasGpu: false, label: "No NVIDIA GPU detected" };
   }
 });
 
@@ -165,9 +189,11 @@ ipcMain.handle("worker:start", (_event, cfg) => {
     ...process.env,
     API_URL: cfg.apiUrl,
     WORKER_ID: cfg.workerId,
+    WORKER_STORAGE_DIR: path.join(app.getPath("documents"), "CoreShare", "worker-jobs"),
     PYTHONUNBUFFERED: "1",
   };
-  if (cfg.inputDir) env.INPUT_DIR = cfg.inputDir;
+  const docker = dockerBin();
+  if (docker) env.DOCKER_BIN = docker;
   if (cfg.gpuPct) env.GPU_SHARE_PCT = String(cfg.gpuPct);
   if (cfg.vramCapMb) env.VRAM_CAP_MB = String(cfg.vramCapMb);
 
