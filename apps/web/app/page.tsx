@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui";
+import { Button, PreviewBadge, usd } from "@/components/ui";
+import { estimateJob } from "@/lib/pending";
 import { Tooltip } from "@/components/ui/tooltip-card";
 import { GpuSpin } from "@/components/GpuSpin";
 import { SmoothScroll } from "@/components/SmoothScroll";
@@ -9,7 +10,7 @@ import { ConnectStop } from "@/components/landing/ConnectStop";
 
 const STEPS = [
   {
-    t: "Drop your files",
+    t: "Dump your files on us",
     d: (
       <>
         Satellite tiles or audio files.{" "}
@@ -21,7 +22,7 @@ const STEPS = [
     ),
   },
   {
-    t: "We slice it up",
+    t: "We chop it up",
     d: (
       <>
         The job is cut into{" "}
@@ -46,13 +47,18 @@ const STEPS = [
   },
 ];
 
+// Same sample job as the Rent section below, so the two numbers always agree.
+const SAMPLE_UNITS = 8;
+
 export default function Home() {
+  const sample = estimateJob("segmentation", SAMPLE_UNITS);
   return (
     <div className="py-8 sm:py-20">
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
         <div>
           <h1 className="max-w-3xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             Rent a GPU by the minute. Or get paid for yours.
+            <span className="cursor text-accent" aria-hidden>_</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted">
             Cloud GPUs are priced for companies. Your gaming rig sits idle most of the day. We match the two and pay by
@@ -62,6 +68,13 @@ export default function Home() {
             <Button href="/rent">Rent a GPU</Button>
             <Button href="/provider" variant="ghost">Put my GPU to work</Button>
           </div>
+          <p className="num mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+            <PreviewBadge>Sample</PreviewBadge>
+            <span>
+              {SAMPLE_UNITS} flood tiles, {sample.chunks} chunks, ~{sample.eta_min} min:
+            </span>
+            <span className="text-lg font-semibold text-accent">{usd(sample.cost_usd)}</span>
+          </p>
         </div>
         <GpuSpin />
       </div>

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui";
 import { Stop } from "./Stop";
 
 const STEPS = [
-  "Phantom asks you to sign a one-time message.",
-  "We check the signature and sign you in.",
-  "That’s it. Signing in moves no money.",
+  "Phantom pops up and asks you to sign one message.",
+  "We check it’s really you and let you in.",
+  "That’s all. Signing in moves no money.",
 ];
 
 export function ConnectStop() {
@@ -19,8 +19,8 @@ export function ConnectStop() {
       title={connected ? "Wallet connected." : "Plug in. No email, no card."}
       body={
         connected
-          ? "You’re in. Pick a job to run, or check what your GPU has earned."
-          : "Your wallet is your login. Here’s exactly what happens when you click."
+          ? "You’re in. Go throw a job at it, or see what your GPU’s been up to."
+          : "Your wallet is your login. No forms, no passwords. Here’s what happens when you click."
       }
       actions={
         <>
