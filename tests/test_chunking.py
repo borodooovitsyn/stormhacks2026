@@ -24,6 +24,7 @@ def test_queue_claims_each_chunk_once():
     queue = InMemoryJobQueue()
     job = queue.create_job(
         job_type="segmentation",
+        image="gpu-share/imageproc:cpu",
         input_url="mock://batch.tif",
         total_units=4,
         requested_chunks=2,
@@ -40,6 +41,7 @@ def test_queue_claims_each_chunk_once():
     assert third is None
     assert first.worker_id == "worker-a"
     assert second.worker_id == "worker-b"
+    assert first.image == "gpu-share/imageproc:cpu"
     assert first.chunk_id != second.chunk_id
 
 
@@ -47,6 +49,7 @@ def test_queue_marks_claimed_chunk_complete():
     queue = InMemoryJobQueue()
     queue.create_job(
         job_type="segmentation",
+        image="gpu-share/imageproc:cpu",
         input_url="mock://batch.tif",
         total_units=1,
         requested_chunks=1,

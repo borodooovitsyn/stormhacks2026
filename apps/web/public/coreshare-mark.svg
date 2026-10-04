@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="220 220 584 584" fill="none" stroke="#3dff72" stroke-linecap="round" stroke-linejoin="round">
+  <!-- CoreShare mark, vector redraw of gpu-mesh-minimal-5-matrix.jpg. Transparent background. -->
+  <g stroke-width="12">
+    <path d="M382 232H232V382"/>
+    <path d="M642 232H792V382"/>
+    <path d="M232 642V792H382"/>
+    <path d="M792 642V792H642"/>
+  </g>
+  <g fill="#3dff72" stroke="none">
+    <circle cx="352" cy="352" r="9"/><circle cx="458" cy="352" r="9"/><circle cx="565" cy="352" r="9"/>
+    <circle cx="352" cy="458" r="9"/><circle cx="458" cy="458" r="9"/><circle cx="672" cy="458" r="9"/>
+    <circle cx="352" cy="565" r="9"/><circle cx="565" cy="565" r="9"/><circle cx="672" cy="565" r="9"/>
+    <circle cx="458" cy="672" r="9"/><circle cx="565" cy="672" r="9"/><circle cx="672" cy="672" r="9"/>
+  </g>
+  <path d="M352 672L672 352" stroke-width="10"/>
+  <g fill="#3dff72" stroke="none">
+    <circle cx="352" cy="672" r="20"/><circle cx="458" cy="565" r="20"/>
+    <circle cx="565" cy="458" r="20"/><circle cx="672" cy="352" r="20"/>
+  </g>
+</svg>

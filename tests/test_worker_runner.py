@@ -9,10 +9,16 @@ def test_yields_one_sample_per_interval():
     assert len(samples) == 3
 
 
-def test_total_cost_matches_metered_duration():
-    samples = list(fake_run(duration_seconds=6, interval_seconds=2, rate_usd_per_hour=0.50))
-    total = sum(s.cost_usd for s in samples)
-    assert total == pytest.approx(interval_cost(6, 0.50))
+def test_cost_reflects_utilization_per_sample():
+    samples = list(fake_run(duration_seconds=6, interval_seconds=2, rate_usd_per_hour=0.50, seed=1))
+    for s in samples:
+        assert s.cost_usd == pytest.approx(interval_cost(2, 0.50, s.gpu_util_pct))
+
+
+def test_lower_share_earns_less():
+    half = sum(s.cost_usd for s in fake_run(60, 2, 0.50, seed=1, max_util=50))
+    full = sum(s.cost_usd for s in fake_run(60, 2, 0.50, seed=1, max_util=100))
+    assert half < full
 
 
 def test_samples_report_plausible_utilization():
@@ -42,4 +48,4 @@ def test_gpu_run_meters_cost():
         duration_seconds=4, interval_seconds=2, rate_usd_per_hour=0.50,
         sample=lambda: (90.0, 5000),
     ))
-    assert sum(s.cost_usd for s in samples) == pytest.approx(interval_cost(4, 0.50))
+    assert sum(s.cost_usd for s in samples) == pytest.approx(interval_cost(4, 0.50, 90))

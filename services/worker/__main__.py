@@ -54,7 +54,7 @@ def main() -> None:
             if input_dir:
                 out = tempfile.mkdtemp()
 
-                def run_job(chunk: dict) -> bool:
+                def run_job(chunk: dict, output_dir: str = out) -> bool:
                     image = resolve_image(chunk, gpu=real, default_job_type=job_type)
                     res = run_in_sandbox(image, input_dir, out, gpus=real,
                                          gpu_pct=gpu_pct, vram_cap_mb=vram_cap_mb)
@@ -63,7 +63,11 @@ def main() -> None:
 
                 result = run_job_once(client, worker_id, rate_usd_per_hour=rate, run_job=run_job, sample=sampler)
             else:
-                samples = gpu_run(duration, interval, rate) if real else fake_run(duration, interval, rate)
+                samples = (
+                    gpu_run(duration, interval, rate)
+                    if real
+                    else fake_run(duration, interval, rate, max_util=gpu_pct or 100.0)
+                )
                 result = run_one(client, worker_id, samples, interval_seconds=interval, sleep=time.sleep)
 
             if result.get("idle"):

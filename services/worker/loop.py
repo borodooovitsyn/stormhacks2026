@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 from services.worker.client import BackendClient
 from services.worker.metering import interval_cost
@@ -57,7 +57,7 @@ def run_job_once(
     ok = run_job(chunk)
     elapsed = clock() - started
     util, vram = sample()
-    cost = interval_cost(elapsed, rate_usd_per_hour)
+    cost = interval_cost(elapsed, rate_usd_per_hour, util)
     client.report_metric(worker_id, chunk["job_id"], Sample(util, vram, cost))
     client.complete(chunk["chunk_id"])
     return {"chunk_id": chunk["chunk_id"], "ok": ok, "cost_usd": cost, "seconds": elapsed}

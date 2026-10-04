@@ -1,39 +1,31 @@
-# GPU Share — one-command Windows provider setup.
-# Run in an ADMIN PowerShell from the repo folder:
-#   powershell -ExecutionPolicy Bypass -File .\setup.ps1
-#Requires -RunAsAdministrator
+# First-run provider setup (Windows): WSL2 + Docker Desktop (silent), then wait.
+# Launched elevated by the app. GPU works via Docker Desktop's WSL2 backend + NVIDIA driver.
+$ErrorActionPreference = "Continue"
 
-$ErrorActionPreference = "Stop"
-Write-Host "=== GPU Share provider setup ===" -ForegroundColor Cyan
+function DockerReady { docker info *> $null; return ($LASTEXITCODE -eq 0) }
 
-function Test-Wsl2Ready {
-    try { wsl --status *> $null; return ($LASTEXITCODE -eq 0) } catch { return $false }
+if (DockerReady) { Write-Host "Docker is already running."; exit 0 }
+
+Write-Host "Enabling WSL2 (may need a reboot the first time)..."
+wsl --install --no-distribution 2>$null
+
+$dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+if (-not (Test-Path $dockerExe)) {
+  $inst = "$env:TEMP\DockerDesktopInstaller.exe"
+  Write-Host "Downloading Docker Desktop..."
+  Invoke-WebRequest "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe" -OutFile $inst
+  Write-Host "Installing Docker Desktop (silent)..."
+  Start-Process $inst -Wait -ArgumentList 'install','--quiet','--accept-license','--backend=wsl-2','--always-run-service'
 }
 
-# 1. WSL2 + Ubuntu (needs a reboot the first time on a fresh machine)
-if (-not (Test-Wsl2Ready)) {
-    Write-Host "Enabling WSL2 + installing Ubuntu..." -ForegroundColor Yellow
-    wsl --install -d Ubuntu
-    Write-Host "`n>> If Windows asks you to REBOOT, reboot and re-run this script. <<`n" -ForegroundColor Yellow
-    exit 0
+if (Test-Path $dockerExe) {
+  Write-Host "Starting Docker Desktop..."
+  Start-Process $dockerExe
 }
 
-if (((wsl --list --quiet) -join "`n") -notmatch "Ubuntu") {
-    Write-Host "Installing Ubuntu distro..." -ForegroundColor Yellow
-    wsl --install -d Ubuntu
-    Write-Host "Ubuntu installed. Re-run this script once it has finished first-time setup." -ForegroundColor Yellow
-    exit 0
+Write-Host "Waiting for Docker (up to ~3 min)..."
+for ($i = 0; $i -lt 60; $i++) {
+  if (DockerReady) { Write-Host "Docker is ready."; exit 0 }
+  Start-Sleep 3
 }
-
-wsl --set-default-version 2 *> $null
-
-# 2. Run the Linux-side setup inside WSL (as root, non-interactive)
-$repoWin = $PSScriptRoot
-$repoWsl = (wsl wslpath -a "$repoWin").Trim()
-Write-Host "Running Linux setup inside WSL ($repoWsl)..." -ForegroundColor Cyan
-wsl -d Ubuntu -u root -- bash -lc "cd '$repoWsl' && bash scripts/setup-wsl.sh"
-
-Write-Host "`n=== Setup complete. To start sharing your GPU: ===" -ForegroundColor Green
-Write-Host "   wsl -d Ubuntu -- bash -lc 'cd $repoWsl && make api'     # terminal 1"
-Write-Host "   wsl -d Ubuntu -- bash -lc 'cd $repoWsl && make worker'  # terminal 2"
-Write-Host "   (or just open the GPU Share desktop app)"
+Write-Host "Docker installed. A reboot may be needed for WSL2 — reboot, relaunch CoreShare, then click Re-check."

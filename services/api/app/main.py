@@ -13,10 +13,14 @@ Contract (do not break these paths/shapes without telling the team):
 
 from __future__ import annotations
 
+import io
+import zipfile
 from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from services.api.app.auth import AuthError, AuthService
@@ -109,6 +113,7 @@ def devices_pair_approve(code: str, req: PairApproveRequest) -> dict:
 
 class JobCreateRequest(BaseModel):
     job_type: str = "segmentation"
+    image: str = "gpu-share/imageproc:cpu"
     input_url: str = "mock://flood-watch/tile-batch.tif"
     total_units: int = Field(default=6, ge=1)
     requested_chunks: int = Field(default=6, ge=1)
@@ -127,6 +132,7 @@ class MetricSample(BaseModel):
 def create_job(req: JobCreateRequest) -> dict:
     job = job_queue.create_job(
         job_type=req.job_type,
+        image=req.image,
         input_url=req.input_url,
         total_units=req.total_units,
         requested_chunks=req.requested_chunks,
@@ -134,8 +140,47 @@ def create_job(req: JobCreateRequest) -> dict:
     return {
         "job_id": job.job_id,
         "job_type": job.job_type,
+        "image": job.image,
         "status": "queued",
         "chunk_count": len(job.chunk_ids),
+    }
+
+
+@app.get("/jobs/{job_id}")
+def get_job(job_id: str) -> dict:
+    job = job_queue.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="job not found")
+
+    chunks = job_queue.chunks_for_job(job_id)
+    complete = sum(1 for chunk in chunks if chunk.status == "complete")
+    claimed = sum(1 for chunk in chunks if chunk.status == "claimed")
+    status = "complete" if complete == len(chunks) else "running" if claimed else "queued"
+
+    return {
+        "job_id": job.job_id,
+        "job_type": job.job_type,
+        "image": job.image,
+        "input_url": job.input_url,
+        "status": status,
+        "total_units": job.total_units,
+        "chunk_count": len(chunks),
+        "chunks_complete": complete,
+        "chunks": [
+            {
+                "chunk_id": chunk.chunk_id,
+                "job_id": chunk.job_id,
+                "job_type": chunk.job_type,
+                "image": chunk.image,
+                "input_url": chunk.input_url,
+                "worker_id": chunk.worker_id,
+                "status": chunk.status,
+                "start_unit": chunk.start_unit,
+                "end_unit": chunk.end_unit,
+                "result_url": f"mock://results/{chunk.chunk_id}.zip" if chunk.status == "complete" else None,
+            }
+            for chunk in chunks
+        ],
     }
 
 
@@ -149,6 +194,7 @@ def claim_chunk(worker_id: str) -> dict:
             "chunk_id": "",
             "job_id": "",
             "job_type": "idle",
+            "image": "",
             "input_url": "",
         }
 
@@ -157,6 +203,7 @@ def claim_chunk(worker_id: str) -> dict:
         "chunk_id": chunk.chunk_id,
         "job_id": chunk.job_id,
         "job_type": chunk.job_type,
+        "image": chunk.image,
         "input_url": chunk.input_url,
     }
 
@@ -187,3 +234,23 @@ def complete_chunk(chunk_id: str) -> dict:
 @app.get("/earnings/{worker_id}")
 def earnings(worker_id: str) -> dict:
     return metrics_repo.earnings(worker_id)
+
+
+@app.get("/downloads/desktop")
+def download_desktop() -> StreamingResponse:
+    desktop_dir = Path(__file__).resolve().parents[3] / "apps" / "desktop"
+    if not desktop_dir.exists():
+        raise HTTPException(status_code=404, detail="desktop app not found")
+
+    buffer = io.BytesIO()
+    excluded_dirs = {"node_modules", ".git", "dist", "build"}
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path in desktop_dir.rglob("*"):
+            relative = path.relative_to(desktop_dir)
+            if path.is_dir() or excluded_dirs.intersection(relative.parts):
+                continue
+            archive.write(path, Path("gpu-share-desktop") / relative)
+
+    buffer.seek(0)
+    headers = {"Content-Disposition": 'attachment; filename="gpu-share-desktop.zip"'}
+    return StreamingResponse(buffer, media_type="application/zip", headers=headers)
