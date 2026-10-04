@@ -14,7 +14,7 @@ import httpx
 
 from services.worker.client import BackendClient
 from services.worker.gpu import has_nvidia_gpu, sample_gpu
-from services.worker.jobs import image_for
+from services.worker.jobs import resolve_image
 from services.worker.loop import run_job_once, run_one
 from services.worker.runner import fake_run, gpu_run
 from services.worker.sandbox import run_in_sandbox
@@ -48,8 +48,9 @@ def main() -> None:
             if input_dir:
                 out = tempfile.mkdtemp()
 
-                def run_job(_chunk: dict) -> bool:
-                    res = run_in_sandbox(image_for(job_type, gpu=real), input_dir, out, gpus=real)
+                def run_job(chunk: dict) -> bool:
+                    image = resolve_image(chunk, gpu=real, default_job_type=job_type)
+                    res = run_in_sandbox(image, input_dir, out, gpus=real)
                     print(res.stdout.strip() or res.stderr.strip()[-300:])
                     return res.ok
 

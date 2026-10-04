@@ -1,4 +1,4 @@
-.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda
+.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc
 
 VENV = .venv
 PYTHON ?= python3.12
@@ -22,6 +22,9 @@ whisper-cpu:  ## build the CPU whisper image (any laptop)
 
 whisper-cuda:  ## build the GPU whisper image (ROG / NVIDIA box)
 	docker build -f services/worker/images/whisper/Dockerfile.cuda -t gpu-share/whisper:cuda services/worker/images/whisper
+
+imageproc:  ## build the demo image-processing workload (proves any image runs)
+	docker build -t gpu-share/imageproc:cpu services/worker/images/imageproc
 
 test:  ## run the test suite
 	$(VENV)/bin/pytest -q

@@ -14,3 +14,13 @@ def image_for(job_type: str, *, gpu: bool = False) -> str:
     except KeyError:
         raise ValueError(f"unknown job_type: {job_type!r}")
     return variants.get("gpu") if gpu and "gpu" in variants else variants["cpu"]
+
+
+def resolve_image(chunk: dict, *, gpu: bool = False, default_job_type: str = "whisper") -> str:
+    """Pick the image to run: renter-supplied image wins, else a registry preset."""
+    if chunk.get("image"):
+        return chunk["image"]
+    job_type = chunk.get("job_type")
+    if job_type not in JOB_IMAGES:
+        job_type = default_job_type
+    return image_for(job_type, gpu=gpu)
