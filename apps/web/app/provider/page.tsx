@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { api, desktopDownloadUrl } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { api, desktopDownloadUrl, getSession } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
 import { SAMPLE_PAYOUTS } from "@/lib/pending";
 import { EarningsChart } from "@/components/EarningsChart";
@@ -9,6 +9,19 @@ import { Card, EmptyState, LiveBadge, PageHeader, PreviewBadge, Stat, sol, short
 
 export default function ProviderPage() {
   const [workerId, setWorkerId] = useState("demo-worker");
+
+  // Resolve the signed-in wallet to its paired worker so earnings match the desktop.
+  useEffect(() => {
+    const session = getSession();
+    if (!session?.wallet) return;
+    api
+      .walletWorkers(session.wallet)
+      .then((r) => {
+        if (r.worker_ids.length) setWorkerId(r.worker_ids[0]);
+      })
+      .catch(() => {});
+  }, []);
+
   const fetchEarnings = useCallback(() => api.earnings(workerId), [workerId]);
   const { data, error, loading } = usePolling(fetchEarnings, 3000);
 

@@ -68,7 +68,7 @@ $("pair-btn").onclick = async () => {
     pairCode = res.code;
     $("pair-code").textContent = res.code || "——";
     if (res.status === "approved" && res.device_token) {
-      onApproved();
+      onApproved(res);
     } else {
       $("pair-status").textContent = "Waiting for approval on the website…";
       pollTimer = setInterval(pollPairing, 1500);
@@ -82,7 +82,7 @@ async function pollPairing() {
   if (!pairCode) return;
   try {
     const res = await api.pairStatus(pairCode);
-    if (res.status === "approved") onApproved();
+    if (res.status === "approved") onApproved(res);
     else if (res.status === "expired") {
       clearInterval(pollTimer);
       $("pair-status").textContent = "Code expired — try again.";
@@ -92,8 +92,10 @@ async function pollPairing() {
   }
 }
 
-function onApproved() {
+function onApproved(session) {
   if (pollTimer) clearInterval(pollTimer);
+  // Use the account identity the backend assigned at pairing.
+  if (session && session.worker_id) cfg.workerId = session.worker_id;
   $("pair-status").textContent = "Approved ✓";
   enterDashboard();
 }

@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 from services.api.app.auth import AuthError, AuthService
 from services.api.app.database import MetricsRepository
 from services.api.app.jobs import InMemoryJobQueue
+from services.api.app.links import LinkStore
 from services.api.app.pairing import PairingStore
 
 app = FastAPI(title="GPU Share API", version="0.1.0")
@@ -42,6 +43,7 @@ job_queue = InMemoryJobQueue()
 metrics_repo = MetricsRepository()
 auth_service = AuthService()
 pairing_store = PairingStore()
+link_store = LinkStore()
 
 
 def _now() -> str:
@@ -106,7 +108,33 @@ def devices_pair_approve(code: str, req: PairApproveRequest) -> dict:
         raise HTTPException(status_code=404, detail="pairing code not found")
     if session.status == "expired":
         raise HTTPException(status_code=410, detail="pairing code expired")
+    # Link this device's worker to the approving wallet -> earnings pay this wallet.
+    link_store.link_worker(session.worker_id, req.wallet)
     return session.as_response()
+
+
+@app.get("/wallets/{wallet}/workers")
+def wallet_workers(wallet: str) -> dict:
+    return {"wallet": wallet, "worker_ids": link_store.workers_for_wallet(wallet)}
+
+
+class AccountRegister(BaseModel):
+    email: str
+    wallet: str
+
+
+@app.post("/accounts")
+def register_account(req: AccountRegister) -> dict:
+    link_store.register_account(req.email, req.wallet)
+    return {"email": req.email, "wallet": req.wallet}
+
+
+@app.get("/accounts/{email}/wallet")
+def account_wallet(email: str) -> dict:
+    wallet = link_store.wallet_for_email(email)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="account not linked to a wallet")
+    return {"email": email, "wallet": wallet}
 
 
 # --- worker loop ----------------------------------------------------------
@@ -233,7 +261,11 @@ def complete_chunk(chunk_id: str) -> dict:
 
 @app.get("/earnings/{worker_id}")
 def earnings(worker_id: str) -> dict:
-    return metrics_repo.earnings(worker_id)
+    data = metrics_repo.earnings(worker_id)
+    linked = link_store.wallet_for_worker(worker_id)
+    if linked:
+        data["payout_wallet"] = linked
+    return data
 
 
 @app.get("/downloads/desktop")

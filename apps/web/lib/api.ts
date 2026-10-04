@@ -134,6 +134,15 @@ export const api = {
     }),
   earnings: (workerId: string) =>
     request<Earnings>(`/earnings/${encodeURIComponent(workerId)}`),
+  walletWorkers: (wallet: string) =>
+    request<{ wallet: string; worker_ids: string[] }>(
+      `/wallets/${encodeURIComponent(wallet)}/workers`,
+    ),
+  linkAccount: (email: string, wallet: string) =>
+    request<{ email: string; wallet: string }>("/accounts", {
+      method: "POST",
+      body: JSON.stringify({ email, wallet }),
+    }),
   createJob: (job: JobCreateInput) =>
     request<JobCreateResult>("/jobs", {
       method: "POST",

@@ -5,7 +5,7 @@ import { ConnectionProvider, WalletProvider, useWallet } from "@solana/wallet-ad
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import bs58 from "bs58";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import { api, getSession, setSession as storeSession, type Session } from "@/lib/api";
 
 type AuthState = {
@@ -26,6 +26,7 @@ export function useAuth() {
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const { publicKey, signMessage, disconnect, connected } = useWallet();
+  const { data: account } = useSession();
   const [session, setSession] = useState<Session | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,16 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       const next = { token: res.token, wallet };
       storeSession(next);
       setSession(next);
+      // Bind this wallet to the signed-in email account so earnings/payouts
+      // follow the account. Best-effort: don't fail sign-in if it errors.
+      const email = account?.user?.email;
+      if (email) {
+        try {
+          await api.linkAccount(email, wallet);
+        } catch {
+          /* non-fatal */
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
       setError(
