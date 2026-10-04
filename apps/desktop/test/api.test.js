@@ -37,6 +37,14 @@ test("earnings url-encodes the worker id", async () => {
   assert.equal(f.calls[0].url, "http://localhost:8000/earnings/w%201%2Fx");
 });
 
+test("payouts gets /payouts/<wallet> and url-encodes the wallet", async () => {
+  const f = fakeFetch([{ body: { wallet: "wallet 1/x", payouts: [] } }]);
+  const api = createApi("http://localhost:8000", f);
+  const res = await api.payouts("wallet 1/x");
+  assert.equal(f.calls[0].url, "http://localhost:8000/payouts/wallet%201%2Fx");
+  assert.deepEqual(res.payouts, []);
+});
+
 test("throws on a non-ok response", async () => {
   const f = fakeFetch([{ ok: false, status: 500, body: null }]);
   const api = createApi("http://localhost:8000", f);

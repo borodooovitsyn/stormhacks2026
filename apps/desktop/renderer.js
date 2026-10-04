@@ -4,6 +4,8 @@ let sharing = false;
 
 const $ = (id) => document.getElementById(id);
 const money = (n) => Number(n || 0).toFixed(4) + " SOL";
+const shortAddr = (a) => (a && a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a || "—");
+const agoMin = (ts) => Math.max(0, Math.round((Date.now() / 1000 - ts) / 60));
 
 async function init() {
   cfg = await window.desktop.getConfig();
@@ -68,7 +70,7 @@ $("pair-btn").onclick = async () => {
     pairCode = res.code;
     $("pair-code").textContent = res.code || "——";
     if (res.status === "approved" && res.device_token) {
-      onApproved();
+      onApproved(res);
     } else {
       $("pair-status").textContent = "Waiting for approval on the website…";
       pollTimer = setInterval(pollPairing, 1500);
@@ -82,7 +84,7 @@ async function pollPairing() {
   if (!pairCode) return;
   try {
     const res = await api.pairStatus(pairCode);
-    if (res.status === "approved") onApproved();
+    if (res.status === "approved") onApproved(res);
     else if (res.status === "expired") {
       clearInterval(pollTimer);
       $("pair-status").textContent = "Code expired — try again.";
@@ -92,8 +94,10 @@ async function pollPairing() {
   }
 }
 
-function onApproved() {
+function onApproved(session) {
   if (pollTimer) clearInterval(pollTimer);
+  // Use the account identity the backend assigned at pairing, unless WORKER_ID was pinned.
+  if (session && session.worker_id && !cfg.workerIdPinned) cfg.workerId = session.worker_id;
   $("pair-status").textContent = "Approved ✓";
   enterDashboard();
 }
@@ -131,23 +135,36 @@ async function enterDashboard() {
   setInterval(refreshEarnings, 3000);
 }
 
-function renderPayouts() {
-  $("payouts").innerHTML = SAMPLE_PAYOUTS.map(
-    (p) =>
-      `<li><span class="sig">${p.sig}</span><span class="ago">${p.ago} min ago</span><span class="amt num">+${usd(p.amount)}</span></li>`,
-  ).join("");
+async function renderPayouts(wallet) {
+  if (!wallet) return;
+  try {
+    const { payouts } = await api.payouts(wallet);
+    if (!payouts.length) {
+      $("payouts").innerHTML = `<li class="ago">No payouts yet.</li>`;
+      return;
+    }
+    $("payouts").innerHTML = payouts
+      .map(
+        (p) =>
+          `<li><span class="sig">${shortAddr(p.signature)}</span><span class="ago">${agoMin(p.ts)} min ago</span><span class="amt num">+${money(p.amount_sol)}</span></li>`,
+      )
+      .join("");
+  } catch (_e) {
+    /* leave as-is */
+  }
 }
 
 async function refreshEarnings() {
   try {
     const e = await api.earnings(cfg.workerId);
     const series = (e.series || []).map((p) => p.cost_usd);
-    $("today").textContent = usd(e.earnings_today_usd);
-    $("total").textContent = usd(e.earnings_total_usd);
-    $("permin").textContent = usd(series.at(-1) || 0);
+    $("today").textContent = money(e.earnings_today_usd);
+    $("total").textContent = money(e.earnings_total_usd);
+    $("permin").textContent = money(series.at(-1) || 0);
     $("wallet").textContent = shortAddr(e.payout_wallet);
     $("wallet").title = e.payout_wallet || "";
     drawArea(series);
+    renderPayouts(e.payout_wallet);
   } catch (_e) {
     $("conn").textContent = cfg.apiUrl + " (offline?)";
   }

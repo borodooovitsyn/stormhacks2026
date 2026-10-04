@@ -30,10 +30,10 @@ class GetWorkerIdsTests(unittest.TestCase):
             ],
         )
 
-    def test_raises_when_worker_ids_are_missing(self) -> None:
+    def test_returns_empty_when_worker_ids_are_missing(self) -> None:
+        # The missing-config error now surfaces in resolve_worker_ids, not here.
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaises(RuntimeError):
-                get_worker_ids()
+            self.assertEqual(get_worker_ids(), [])
 
 
 class RunCycleTests(unittest.IsolatedAsyncioTestCase):
