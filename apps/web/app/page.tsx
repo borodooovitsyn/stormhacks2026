@@ -1,4 +1,4 @@
-import { Button, PreviewBadge, usd } from "@/components/ui";
+import { Button, PreviewBadge, sol } from "@/components/ui";
 import { estimateJob } from "@/lib/pending";
 import { Tooltip } from "@/components/ui/tooltip-card";
 import { GpuSpin } from "@/components/GpuSpin";
@@ -73,7 +73,7 @@ export default function Home() {
             <span>
               Blender render, {sample.chunks} chunks, ~{sample.eta_min} min:
             </span>
-            <span className="text-lg font-semibold text-accent">{usd(sample.cost_usd)}</span>
+            <span className="text-lg font-semibold text-accent">{sol(sample.cost_usd)}</span>
           </p>
         </div>
         <GpuSpin />

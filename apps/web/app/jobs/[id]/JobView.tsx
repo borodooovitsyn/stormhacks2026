@@ -11,7 +11,7 @@ import {
   type WorkloadPreset,
 } from "@/lib/pending";
 import { usePolling } from "@/lib/usePolling";
-import { Button, Card, LiveBadge, PageHeader, PreviewBadge, usd } from "@/components/ui";
+import { Button, Card, LiveBadge, PageHeader, PreviewBadge, sol } from "@/components/ui";
 
 const WORKERS = ["laptop-2", "laptop-3", "studio-4090"];
 
@@ -124,7 +124,7 @@ export function JobView() {
       <Card>
         <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border pb-5">
           <p className="num text-sm text-muted">
-            Cost so far <span className="text-lg font-semibold text-text">{usd(cost, 2)}</span> ·{" "}
+            Cost so far <span className="text-lg font-semibold text-text">{sol(cost, 2)}</span> ·{" "}
             {Math.max(activeWorkers, est.workers)} workers · ETA {elapsedLabel(etaSeconds)}
           </p>
           <p className="num text-sm text-muted">

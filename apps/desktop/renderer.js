@@ -3,15 +3,7 @@ let api = null;
 let sharing = false;
 
 const $ = (id) => document.getElementById(id);
-const usd = (n) => "$" + Number(n || 0).toFixed(4);
-const shortAddr = (a) => (a && a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a || "—");
-
-const SAMPLE_PAYOUTS = [
-  { ago: 4, amount: 0.184, sig: "5Kd9…q2Tn" },
-  { ago: 19, amount: 0.221, sig: "3Hf1…x8Zc" },
-  { ago: 41, amount: 0.096, sig: "9Pa7…m1Wd" },
-  { ago: 95, amount: 0.312, sig: "2Rt5…k6Vb" },
-];
+const money = (n) => Number(n || 0).toFixed(4) + " SOL";
 
 async function init() {
   cfg = await window.desktop.getConfig();

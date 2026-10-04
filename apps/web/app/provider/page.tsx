@@ -5,7 +5,7 @@ import { api, desktopDownloadUrl } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
 import { SAMPLE_PAYOUTS } from "@/lib/pending";
 import { EarningsChart } from "@/components/EarningsChart";
-import { Card, EmptyState, LiveBadge, PageHeader, PreviewBadge, Stat, usd, shortAddr } from "@/components/ui";
+import { Card, EmptyState, LiveBadge, PageHeader, PreviewBadge, Stat, sol, shortAddr } from "@/components/ui";
 
 export default function ProviderPage() {
   const [workerId, setWorkerId] = useState("demo-worker");
@@ -57,13 +57,13 @@ export default function ProviderPage() {
               <div className="skeleton mt-2 h-12 w-48" />
             ) : (
               <p className="num mt-1 text-5xl font-semibold tracking-tight text-accent">
-                {data ? usd(data.earnings_today_usd) : "—"}
+                {data ? sol(data.earnings_today_usd) : "—"}
               </p>
             )}
           </div>
           <div className="flex gap-8">
-            <Stat label="All time" value={data ? usd(data.earnings_total_usd) : ""} loading={loading} />
-            <Stat label="Last minute" value={data ? usd(perMin) : ""} loading={loading} />
+            <Stat label="All time" value={data ? sol(data.earnings_total_usd) : ""} loading={loading} />
+            <Stat label="Last minute" value={data ? sol(perMin) : ""} loading={loading} />
           </div>
           <LiveBadge live={!error} />
         </div>
@@ -104,7 +104,7 @@ export default function ProviderPage() {
               <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
                 <span className="font-mono text-muted">{p.signature}</span>
                 <span className="text-xs text-muted">{p.ago_min} min ago</span>
-                <span className="num font-medium text-accent">+{usd(p.amount_usd)}</span>
+                <span className="num font-medium text-accent">+{sol(p.amount_usd)}</span>
               </li>
             ))}
           </ul>
