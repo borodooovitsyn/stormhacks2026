@@ -35,7 +35,8 @@ export function DownloadClient() {
       await api.approvePair(pairCode, accountEmail);
       setApproved(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not approve this device");
+      const message = e instanceof Error ? e.message : "";
+      setError(message.startsWith("404") ? "Code not found" : "Could not approve this device");
     } finally {
       setBusy(false);
     }
