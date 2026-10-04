@@ -118,9 +118,18 @@ function setSharing(on) {
   $("toggle").classList.toggle("danger", on);
 }
 
+$("pct").oninput = () => {
+  $("pct-val").textContent = $("pct").value;
+};
+
 $("toggle").onclick = async () => {
   if (!sharing) {
-    await window.desktop.startWorker(cfg);
+    const withCap = {
+      ...cfg,
+      gpuPct: Number($("pct").value),
+      vramCapMb: $("vram").value ? Number($("vram").value) : null,
+    };
+    await window.desktop.startWorker(withCap);
     setSharing(true);
   } else {
     await window.desktop.stopWorker();

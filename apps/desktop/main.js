@@ -4,7 +4,10 @@ const path = require("path");
 const { spawn, execSync } = require("child_process");
 
 const REPO_ROOT = path.join(__dirname, "..", "..");
-const VENV_PY = path.join(REPO_ROOT, ".venv", "bin", "python");
+const IS_WIN = process.platform === "win32";
+const VENV_PY = IS_WIN
+  ? path.join(REPO_ROOT, ".venv", "Scripts", "python.exe")
+  : path.join(REPO_ROOT, ".venv", "bin", "python");
 
 let worker = null;
 let win = null;
@@ -33,7 +36,7 @@ ipcMain.handle("open:external", (_e, url) => shell.openExternal(url));
 
 ipcMain.handle("gpu:status", () => {
   try {
-    execSync("which nvidia-smi", { stdio: "ignore" });
+    execSync(IS_WIN ? "where nvidia-smi" : "which nvidia-smi", { stdio: "ignore" });
     return { hasGpu: true, label: "NVIDIA GPU detected" };
   } catch {
     return { hasGpu: false, label: "No NVIDIA GPU — CPU / fake mode" };
@@ -44,6 +47,8 @@ ipcMain.handle("worker:start", (_e, cfg) => {
   if (worker) return { running: true };
   const env = { ...process.env, API_URL: cfg.apiUrl, WORKER_ID: cfg.workerId, PYTHONUNBUFFERED: "1" };
   if (cfg.inputDir) env.INPUT_DIR = cfg.inputDir;
+  if (cfg.gpuPct) env.GPU_SHARE_PCT = String(cfg.gpuPct);
+  if (cfg.vramCapMb) env.VRAM_CAP_MB = String(cfg.vramCapMb);
   worker = spawn(VENV_PY, ["-u", "-m", "services.worker"], { cwd: REPO_ROOT, env });
   const send = (d) => win && win.webContents.send("worker:log", d.toString());
   worker.stdout.on("data", send);

@@ -1,4 +1,4 @@
-.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc
+.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc mps-on
 
 VENV = .venv
 PYTHON ?= python3.12
@@ -25,6 +25,9 @@ whisper-cuda:  ## build the GPU whisper image (ROG / NVIDIA box)
 
 imageproc:  ## build the demo image-processing workload (proves any image runs)
 	docker build -t gpu-share/imageproc:cpu services/worker/images/imageproc
+
+mps-on:  ## start NVIDIA MPS on the provider host (enables % GPU caps; Linux/WSL2)
+	nvidia-cuda-mps-control -d && echo "MPS daemon started"
 
 test:  ## run the test suite
 	$(VENV)/bin/pytest -q

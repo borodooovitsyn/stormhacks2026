@@ -32,6 +32,8 @@ def main() -> None:
     job_type = os.environ.get("JOB_TYPE", "whisper")  # until backend serves real job_types
     duration = float(os.environ.get("WORKER_DURATION", "20"))
     interval = float(os.environ.get("WORKER_INTERVAL", "2"))
+    gpu_pct = int(os.environ["GPU_SHARE_PCT"]) if os.environ.get("GPU_SHARE_PCT") else None
+    vram_cap_mb = int(os.environ["VRAM_CAP_MB"]) if os.environ.get("VRAM_CAP_MB") else None
 
     real = has_nvidia_gpu()
     sampler = sample_gpu if real else _fake_sample
@@ -40,7 +42,11 @@ def main() -> None:
         mode = f"real {job_type} jobs from {input_dir}" + (" (GPU)" if real else " (CPU)")
     else:
         mode = "fake streaming (real GPU)" if real else "fake streaming"
-    print(f"worker {worker_id} -> {base} @ ${rate}/hr | mode: {mode} (Ctrl-C to stop)")
+    cap = ""
+    if gpu_pct or vram_cap_mb:
+        parts = [f"{gpu_pct}% GPU" if gpu_pct else "", f"{vram_cap_mb}MB VRAM" if vram_cap_mb else ""]
+        cap = " | share cap: " + ", ".join(p for p in parts if p)
+    print(f"worker {worker_id} -> {base} @ ${rate}/hr | mode: {mode}{cap} (Ctrl-C to stop)")
 
     with httpx.Client(base_url=base, timeout=120) as http:
         client = BackendClient(http)
@@ -50,7 +56,8 @@ def main() -> None:
 
                 def run_job(chunk: dict, output_dir: str = out) -> bool:
                     image = resolve_image(chunk, gpu=real, default_job_type=job_type)
-                    res = run_in_sandbox(image, input_dir, output_dir, gpus=real)
+                    res = run_in_sandbox(image, input_dir, out, gpus=real,
+                                         gpu_pct=gpu_pct, vram_cap_mb=vram_cap_mb)
                     print(res.stdout.strip() or res.stderr.strip()[-300:])
                     return res.ok
 
