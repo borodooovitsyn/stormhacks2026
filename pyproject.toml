@@ -12,6 +12,8 @@ dependencies = [
     "PyJWT>=2.9",
     "PyNaCl>=1.5",
     "base58>=2.1",
+    "solana>=0.34",
+    "solders>=0.21",
 ]
 
 [project.optional-dependencies]
