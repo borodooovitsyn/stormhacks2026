@@ -33,7 +33,7 @@ let win = null;
 // Packaged: run the bundled worker binary. Dev: run from the repo venv.
 function workerSpawn(env) {
   if (app.isPackaged) {
-    const bin = path.join(process.resourcesPath, "worker", IS_WIN ? "corewhore-worker.exe" : "corewhore-worker");
+    const bin = path.join(process.resourcesPath, "worker", IS_WIN ? "coreshare-worker.exe" : "coreshare-worker");
     return spawn(bin, [], { env });
   }
   return spawn(VENV_PY, ["-u", "-m", "services.worker"], { cwd: REPO_ROOT, env });
@@ -42,6 +42,16 @@ function workerSpawn(env) {
 function hasCmd(cmd) {
   try {
     execSync(IS_WIN ? `where ${cmd}` : `which ${cmd}`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Docker must be installed AND the daemon running to actually share.
+function dockerReady() {
+  try {
+    execSync("docker info", { stdio: "ignore", timeout: 6000 });
     return true;
   } catch {
     return false;
@@ -98,7 +108,7 @@ ipcMain.handle("worker:start", (_e, cfg) => {
   return { running: true };
 });
 
-ipcMain.handle("prereq:check", () => ({ docker: hasCmd("docker") }));
+ipcMain.handle("prereq:check", () => ({ docker: dockerReady() }));
 
 ipcMain.handle("setup:run", () => {
   const dir = app.isPackaged ? path.join(process.resourcesPath, "setup") : path.join(REPO_ROOT, "scripts");

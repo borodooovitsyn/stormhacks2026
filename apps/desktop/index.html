@@ -21,10 +21,11 @@
       <section id="setup-screen" class="screen pair hidden">
         <div class="card pair-card">
           <h1>Set up GPU sharing</h1>
-          <p class="sub">Docker (and GPU drivers on Windows) are needed to run jobs. This installs what's missing — you may see a system prompt.</p>
+          <p class="sub">Jobs run in isolated Docker containers. This installs Docker — you'll see one system prompt, and Windows may need a reboot. Click Re-check once Docker is running.</p>
           <div class="pair-actions" style="margin-top:18px">
-            <button id="setup-btn" class="btn primary">Install prerequisites</button>
-            <button id="setup-skip" class="btn link">Skip — CPU / fake mode</button>
+            <button id="setup-btn" class="btn primary">Install Docker</button>
+            <button id="setup-recheck" class="btn ghost">Re-check</button>
+            <button id="setup-skip" class="btn link">Skip</button>
           </div>
           <pre id="setup-log" class="log hidden" style="margin-top:16px"></pre>
         </div>

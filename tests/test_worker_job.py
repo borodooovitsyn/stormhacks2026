@@ -30,10 +30,10 @@ def test_meters_real_duration_and_completes():
         clock=clock,
     )
     assert summary["seconds"] == 5.0
-    assert summary["cost_usd"] == pytest.approx(interval_cost(5.0, 0.50))
+    assert summary["cost_usd"] == pytest.approx(interval_cost(5.0, 0.50, 90))
     assert spy.completed == ["c1"]
     assert len(spy.metrics) == 1
-    assert spy.metrics[0].cost_usd == pytest.approx(interval_cost(5.0, 0.50))
+    assert spy.metrics[0].cost_usd == pytest.approx(interval_cost(5.0, 0.50, 90))
     assert spy.metrics[0].gpu_util_pct == 90.0
 
 

@@ -3,8 +3,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${PY:-.venv/bin/python}"
-"$PY" -m PyInstaller --onefile --name corewhore-worker --paths . \
+"$PY" -m PyInstaller --onefile --name coreshare-worker --paths . \
   --hidden-import=httpx \
   --distpath apps/desktop/bin --workpath build/pyi --specpath build/pyi \
   worker_entry.py
-echo "built -> apps/desktop/bin/corewhore-worker"
+echo "built -> apps/desktop/bin/coreshare-worker"

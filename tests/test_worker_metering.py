@@ -15,3 +15,10 @@ def test_partial_interval_is_prorated():
 
 def test_zero_interval_costs_nothing():
     assert interval_cost(interval_seconds=0, rate_usd_per_hour=0.50) == 0.0
+
+
+def test_cost_scales_with_utilization():
+    # Half utilization for an hour earns half the hourly rate.
+    assert interval_cost(3600, 0.50, gpu_util_pct=50) == pytest.approx(0.25)
+    # Idle GPU earns nothing even while "sharing".
+    assert interval_cost(3600, 0.50, gpu_util_pct=0) == 0.0

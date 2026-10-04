@@ -45,6 +45,17 @@ $("setup-skip").onclick = () => {
   $("pair-screen").classList.remove("hidden");
 };
 
+$("setup-recheck").onclick = async () => {
+  const { docker } = await window.desktop.checkPrereqs();
+  if (docker) {
+    $("setup-screen").classList.add("hidden");
+    $("pair-screen").classList.remove("hidden");
+  } else {
+    $("setup-log").classList.remove("hidden");
+    $("setup-log").textContent += "\nDocker not ready yet — make sure Docker Desktop is running, then Re-check.\n";
+  }
+};
+
 /* --- pairing (device code -> approve on web -> poll for token) --- */
 let pairCode = null;
 let pollTimer = null;
