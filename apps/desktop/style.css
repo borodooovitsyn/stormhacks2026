@@ -87,6 +87,15 @@ button {
   min-height: 2px;
 }
 
+.share-cap { margin: 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.share-cap input[type="range"] { width: 100%; accent-color: var(--accent); }
+.share-cap input[type="number"] {
+  width: 110px; margin-left: 8px;
+  background: #0b0e14; border: 1px solid var(--line); color: var(--text);
+  border-radius: 6px; padding: 4px 8px;
+}
+#cap-note { font-size: 11px; }
+
 .log {
   background: #080b11;
   border: 1px solid var(--line);

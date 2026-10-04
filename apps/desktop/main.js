@@ -41,6 +41,8 @@ ipcMain.handle("worker:start", (_e, cfg) => {
   if (worker) return { running: true };
   const env = { ...process.env, API_URL: cfg.apiUrl, WORKER_ID: cfg.workerId, PYTHONUNBUFFERED: "1" };
   if (cfg.inputDir) env.INPUT_DIR = cfg.inputDir;
+  if (cfg.gpuPct) env.GPU_SHARE_PCT = String(cfg.gpuPct);
+  if (cfg.vramCapMb) env.VRAM_CAP_MB = String(cfg.vramCapMb);
   worker = spawn(VENV_PY, ["-u", "-m", "services.worker"], { cwd: REPO_ROOT, env });
   const send = (d) => win && win.webContents.send("worker:log", d.toString());
   worker.stdout.on("data", send);

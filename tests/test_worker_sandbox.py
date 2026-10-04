@@ -50,3 +50,29 @@ def test_run_reports_failure():
     res = run_in_sandbox("img", "/in", "/out", run=lambda cmd, **_kw: _FakeProc(1, stderr="boom"))
     assert res.ok is False
     assert res.stderr == "boom"
+
+
+def test_gpu_percent_cap_sets_mps_thread_limit():
+    joined = " ".join(build_docker_command("img", "/in", "/out", gpu_pct=50))
+    assert "CUDA_MPS_ACTIVE_THREAD_PERCENTAGE=50" in joined
+
+
+def test_vram_cap_sets_mps_memory_limit():
+    joined = " ".join(build_docker_command("img", "/in", "/out", vram_cap_mb=12288))
+    assert "CUDA_MPS_PINNED_DEVICE_MEM_LIMIT=0=12288M" in joined
+
+
+def test_caps_wire_up_the_mps_pipe():
+    joined = " ".join(build_docker_command("img", "/in", "/out", gpu_pct=50))
+    assert "/tmp/nvidia-mps:/tmp/nvidia-mps" in joined
+    assert "CUDA_MPS_PIPE_DIRECTORY=/tmp/nvidia-mps" in joined
+
+
+def test_no_caps_means_no_mps_env():
+    joined = " ".join(build_docker_command("img", "/in", "/out"))
+    assert "CUDA_MPS" not in joined
+
+
+def test_caps_ignored_without_gpu():
+    joined = " ".join(build_docker_command("img", "/in", "/out", gpus=False, gpu_pct=50, vram_cap_mb=8192))
+    assert "CUDA_MPS" not in joined
