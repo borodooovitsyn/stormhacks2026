@@ -9,6 +9,24 @@ const VENV_PY = IS_WIN
   ? path.join(REPO_ROOT, ".venv", "Scripts", "python.exe")
   : path.join(REPO_ROOT, ".venv", "bin", "python");
 
+// GUI apps (Finder/Dock) don't inherit the login-shell PATH, so docker/nvidia-smi
+// aren't found even when installed. Prepend the common install locations.
+function ensurePath() {
+  if (IS_WIN) return;
+  const extra = [
+    "/usr/local/bin",
+    "/opt/homebrew/bin",
+    "/usr/bin",
+    "/bin",
+    "/usr/sbin",
+    "/sbin",
+    "/Applications/Docker.app/Contents/Resources/bin",
+  ];
+  const cur = (process.env.PATH || "").split(":");
+  process.env.PATH = [...extra, ...cur].filter(Boolean).join(":");
+}
+ensurePath();
+
 let worker = null;
 let win = null;
 
