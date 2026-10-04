@@ -1,148 +1,204 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { JOB_TYPES, estimateJob, type JobType } from "@/lib/pending";
+import { WORKLOADS, estimateJob, type WorkloadPreset } from "@/lib/pending";
 import { Button, Card, PageHeader, PreviewBadge, usd } from "@/components/ui";
 import { Tooltip } from "@/components/ui/tooltip-card";
+
+const PRESETS: WorkloadPreset[] = ["transcribe", "images", "blender", "custom"];
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
 
 export default function RentPage() {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
-  const [type, setType] = useState<JobType>("segmentation");
+  const [preset, setPreset] = useState<WorkloadPreset>("transcribe");
+  const [image, setImage] = useState(WORKLOADS.transcribe.image);
   const [files, setFiles] = useState<File[]>([]);
   const [drag, setDrag] = useState(false);
 
-  const meta = JOB_TYPES[type];
-  const units = files.length;
-  const est = estimateJob(type, units);
-  const accept = type === "segmentation" ? ".tif,.tiff,.png,.jpg,.jpeg" : "audio/*";
+  const meta = WORKLOADS[preset];
+  const units = Math.max(files.length, preset === "blender" && files.length ? 50 : files.length);
+  const estimateUnits = files.length ? units : 0;
+  const est = estimateJob(preset, estimateUnits);
+  const totalSize = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files]);
+  const canRun = files.length > 0 && image.trim().length > 0;
 
   const addFiles = (list: FileList | null) => {
     if (list) setFiles((f) => [...f, ...Array.from(list)]);
   };
 
-  const run = () => router.push(`/jobs/demo?type=${type}&units=${units}`);
+  const selectPreset = (next: WorkloadPreset) => {
+    setPreset(next);
+    if (next !== "custom") setImage(WORKLOADS[next].image);
+  };
+
+  const run = () => {
+    const params = new URLSearchParams({
+      type: preset,
+      units: String(estimateUnits),
+      chunks: String(est.chunks),
+      image: image.trim(),
+      files: String(files.length),
+    });
+    router.push(`/jobs/demo?${params.toString()}`);
+  };
 
   return (
     <>
       <PageHeader
-        title="Rent a GPU"
-        subtitle="Drop in your files, pick a job, and we split the work across idle GPUs. You pay per minute of measured usage."
+        title="New job"
+        subtitle="Bring a container image and input files. Every workload reads /input and writes /output."
+        action={<PreviewBadge>Needs image field in API</PreviewBadge>}
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-4">
-          <Card>
-            <h2 className="mb-3 font-medium">1. Job type</h2>
-            <fieldset className="grid gap-3 sm:grid-cols-2">
-              <legend className="sr-only">Job type</legend>
-              {(Object.keys(JOB_TYPES) as JobType[]).map((k) => (
-                <label key={k} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="job-type"
-                    value={k}
-                    checked={type === k}
-                    onChange={() => {
-                      setType(k);
-                      setFiles([]);
-                    }}
-                    className="peer sr-only"
-                  />
-                  <span className="block h-full rounded-xl border border-border p-4 transition-colors hover:bg-surface-2 peer-checked:border-accent peer-checked:bg-accent/5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
-                    <span className="block font-medium">{JOB_TYPES[k].label}</span>
-                    <span className="mt-1 block text-xs text-muted">{JOB_TYPES[k].blurb}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          </Card>
+        <Card>
+          <div className="space-y-6">
+            <section>
+              <h2 className="text-sm font-medium text-muted">Workload</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {PRESETS.map((key) => {
+                  const active = preset === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => selectPreset(key)}
+                      className={`h-9 rounded-lg border px-3 text-sm font-medium transition-colors ${
+                        active
+                          ? "border-accent bg-accent text-accent-ink"
+                          : "border-border text-text hover:bg-surface-2"
+                      }`}
+                    >
+                      {active ? "▸ " : ""}
+                      {WORKLOADS[key].label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
-          <Card>
-            <h2 className="mb-3 font-medium">2. Upload {meta.unit}s</h2>
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDrag(true);
-              }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDrag(false);
-                addFiles(e.dataTransfer.files);
-              }}
-              onClick={() => input.current?.click()}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
-              tabIndex={0}
-              role="button"
-              aria-label={`Upload ${meta.unit}s`}
-              className={`flex cursor-pointer flex-col items-center rounded-xl border border-dashed px-6 py-10 text-center transition-colors ${
-                drag ? "border-accent bg-accent/5" : "border-border hover:bg-surface-2"
-              }`}
-            >
-              <p className="font-medium">Drop {meta.unit}s here, or click to browse</p>
-              <p className="mt-1 text-xs text-muted">Files stay in your browser until you run the job.</p>
+            <label className="block">
+              <span className="flex items-center gap-2 text-sm font-medium text-muted">
+                Image
+                <Tooltip content="Preset chips fill this field. Custom accepts any Docker image that follows the /input to /output contract.">
+                  Docker image
+                </Tooltip>
+              </span>
               <input
-                ref={input}
-                type="file"
-                multiple
-                accept={accept}
-                className="hidden"
-                onChange={(e) => addFiles(e.target.files)}
+                value={image}
+                onChange={(event) => {
+                  setImage(event.target.value);
+                  if (preset !== "custom" && event.target.value !== WORKLOADS[preset].image) setPreset("custom");
+                }}
+                spellCheck={false}
+                placeholder="ghcr.io/team/my-gpu-job:latest"
+                className="mt-2 h-11 w-full rounded-lg border border-border bg-bg px-3 font-mono text-sm text-text outline-none transition-colors placeholder:text-muted focus:border-accent"
               />
-            </div>
-            {files.length > 0 && (
-              <ul className="mt-4 max-h-44 divide-y divide-border overflow-auto text-sm">
-                {files.map((f, i) => (
-                  <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-3 py-2">
-                    <span className="truncate">{f.name}</span>
-                    <span className="flex shrink-0 items-center gap-3">
-                      <span className="num text-muted">{(f.size / 1024).toFixed(0)} KB</span>
-                      <button
-                        onClick={() => setFiles((all) => all.filter((_, j) => j !== i))}
-                        aria-label={`Remove ${f.name}`}
-                        className="rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-danger"
-                      >
-                        Remove
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
+              <p className="mt-2 text-xs text-muted">{meta.blurb}</p>
+            </label>
+
+            <section>
+              <h2 className="mb-3 text-sm font-medium text-muted">Input files</h2>
+              <div
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDrag(true);
+                }}
+                onDragLeave={() => setDrag(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDrag(false);
+                  addFiles(event.dataTransfer.files);
+                }}
+                onClick={() => input.current?.click()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") input.current?.click();
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label="Upload input files"
+                className={`grid min-h-[180px] cursor-pointer place-items-center rounded-lg border border-dashed px-6 py-10 text-center transition-colors ${
+                  drag ? "border-accent bg-accent/5" : "border-border hover:bg-surface-2"
+                }`}
+              >
+                <div>
+                  <p className="text-3xl" aria-hidden>
+                    ↓
+                  </p>
+                  <p className="mt-3 font-medium">Drag input files here</p>
+                  <p className="mt-1 text-xs text-muted">
+                    They become `/input` for the container. Results come back from `/output`.
+                  </p>
+                  <input
+                    ref={input}
+                    type="file"
+                    multiple
+                    accept={meta.accepts}
+                    className="hidden"
+                    onChange={(event) => addFiles(event.target.files)}
+                  />
+                </div>
+              </div>
+
+              {files.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <p className="font-medium">
+                      {files.length} file{files.length === 1 ? "" : "s"} queued
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setFiles([])}
+                      className="text-sm text-muted transition-colors hover:text-danger"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <ul className="mt-2 max-h-44 divide-y divide-border overflow-auto text-sm">
+                    {files.map((file, index) => (
+                      <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-3 py-2">
+                        <span className="truncate">{file.name}</span>
+                        <span className="num shrink-0 text-muted">{formatBytes(file.size)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          </div>
+        </Card>
 
         <Card className="h-fit lg:sticky lg:top-24">
-          <div className="mb-4 flex items-center gap-2">
-            <h2 className="font-medium">Estimate</h2>
-            <PreviewBadge />
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="font-medium">Queue</h2>
+            <PreviewBadge>Estimate</PreviewBadge>
           </div>
           <dl className="space-y-3 text-sm">
-            <Row k={`${meta.unit}s`} v={String(units)} />
-            <Row
-              k={
-                <Tooltip content="Your job is cut into pieces, each run on a different provider’s GPU, then merged back together.">
-                  Chunks
-                </Tooltip>
-              }
-              v={units ? String(est.chunks) : "—"}
-            />
-            <Row k="Est. time" v={units ? `~${est.eta_min} min` : "—"} />
+            <Row k="Input" v={files.length ? `${files.length} files · ${formatBytes(totalSize)}` : "—"} />
+            <Row k="Splits into" v={est.chunks ? `${est.chunks} chunks` : "—"} />
+            <Row k="Workers" v={est.workers ? `${est.workers} GPUs` : "—"} />
+            <Row k="Runtime" v={est.eta_min ? `~${est.eta_min} min` : "—"} />
             <div className="border-t border-border pt-3">
-              <Row k="Estimated cost" v={units ? usd(est.cost_usd) : "—"} strong />
+              <Row k="Estimated cost" v={est.cost_usd ? usd(est.cost_usd, 2) : "—"} strong />
             </div>
           </dl>
           <div className="mt-5 [&>*]:w-full">
-            <Button onClick={run} disabled={units === 0}>
-              {units ? `Run job · ${usd(est.cost_usd)}` : "Run job"}
+            <Button onClick={run} disabled={!canRun}>
+              Run job
             </Button>
           </div>
           <p className="mt-3 text-xs text-muted" aria-live="polite">
-            {units === 0
-              ? `Add at least one ${meta.unit} to see the cost and run the job.`
-              : "Charged from your credit balance. Final cost follows measured GPU usage, not this estimate."}
+            {!files.length
+              ? "Add at least one input file to estimate the queue."
+              : !image.trim()
+                ? "Add a container image before running."
+                : `Est: ~${usd(est.cost_usd, 2)} · ~${est.eta_min} min across ${est.workers} GPUs`}
           </p>
         </Card>
       </div>
@@ -152,9 +208,9 @@ export default function RentPage() {
 
 function Row({ k, v, strong }: { k: React.ReactNode; v: string; strong?: boolean }) {
   return (
-    <div className="flex justify-between">
+    <div className="flex justify-between gap-4">
       <dt className="text-muted">{k}</dt>
-      <dd className={`num ${strong ? "text-lg font-semibold" : ""}`}>{v}</dd>
+      <dd className={`num text-right ${strong ? "text-lg font-semibold" : ""}`}>{v}</dd>
     </div>
   );
 }

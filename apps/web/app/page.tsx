@@ -13,11 +13,11 @@ const STEPS = [
     t: "Dump your files on us",
     d: (
       <>
-        Satellite tiles or audio files.{" "}
-        <Tooltip content="No arbitrary code. Jobs run in Docker with no network access and a read-only filesystem.">
-          Fixed job types
+        Audio, images, Blender scenes, model inputs.{" "}
+        <Tooltip content="Presets are convenience defaults. Custom workloads provide any Docker image that reads /input and writes /output.">
+          Bring your container
         </Tooltip>{" "}
-        only, so providers stay safe.
+        and we run the same two-screen flow.
       </>
     ),
   },
@@ -48,10 +48,10 @@ const STEPS = [
 ];
 
 // Same sample job as the Rent section below, so the two numbers always agree.
-const SAMPLE_UNITS = 8;
+const SAMPLE_UNITS = 50;
 
 export default function Home() {
-  const sample = estimateJob("segmentation", SAMPLE_UNITS);
+  const sample = estimateJob("blender", SAMPLE_UNITS);
   return (
     <div className="py-8 sm:py-20">
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
@@ -71,7 +71,7 @@ export default function Home() {
           <p className="num mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             <PreviewBadge>Sample</PreviewBadge>
             <span>
-              {SAMPLE_UNITS} flood tiles, {sample.chunks} chunks, ~{sample.eta_min} min:
+              Blender render, {sample.chunks} chunks, ~{sample.eta_min} min:
             </span>
             <span className="text-lg font-semibold text-accent">{usd(sample.cost_usd)}</span>
           </p>
@@ -91,8 +91,8 @@ export default function Home() {
       <div className="mt-20">
         <Stop
           id="rent"
-          title="Throw a job at it."
-          body="Drop in satellite tiles or audio, pick a job, and see the cost before you press go. You pay for measured minutes, not a guess."
+          title="Throw a container at it."
+          body="Pick a preset or paste any Docker image, drop input files, and see the cost before you press go. You pay for measured minutes, not a guess."
           actions={<Button href="/rent">Start a rental</Button>}
           object={<RentSample />}
         />
