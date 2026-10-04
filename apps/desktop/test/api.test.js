@@ -42,3 +42,20 @@ test("throws on a non-ok response", async () => {
   const api = createApi("http://localhost:8000", f);
   await assert.rejects(() => api.pair(), /pair failed: 500/);
 });
+
+test("pairStatus gets /devices/pair/<code>", async () => {
+  const f = fakeFetch([{ body: { code: "7F3A", status: "approved", device_token: "tok" } }]);
+  const api = createApi("http://localhost:8000", f);
+  const res = await api.pairStatus("7F3A");
+  assert.equal(f.calls[0].url, "http://localhost:8000/devices/pair/7F3A");
+  assert.equal(res.status, "approved");
+});
+
+test("pairApprove posts the wallet to /devices/pair/<code>/approve", async () => {
+  const f = fakeFetch([{ body: { status: "approved" } }]);
+  const api = createApi("http://localhost:8000", f);
+  await api.pairApprove("7F3A", "Wallet123");
+  assert.equal(f.calls[0].url, "http://localhost:8000/devices/pair/7F3A/approve");
+  assert.equal(f.calls[0].opts.method, "POST");
+  assert.equal(JSON.parse(f.calls[0].opts.body).wallet, "Wallet123");
+});

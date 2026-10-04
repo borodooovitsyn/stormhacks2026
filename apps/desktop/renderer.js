@@ -18,27 +18,60 @@ async function init() {
   window.desktop.onWorkerState((running) => setSharing(running));
 }
 
+let pairCode = null;
+let pollTimer = null;
+
 $("pair-btn").onclick = async () => {
   $("pair-info").classList.remove("hidden");
   $("pair-status").textContent = "Requesting code…";
   try {
     const res = await api.pair();
+    pairCode = res.code;
     $("pair-code").textContent = res.code || "——";
-    // Mock backend auto-approves and returns a device token immediately.
     if (res.status === "approved" && res.device_token) {
-      $("pair-status").textContent = "Approved ✓";
-      await enterDashboard(res);
+      onApproved(); // mock fast-path
     } else {
       $("pair-status").textContent = "Waiting for approval on the website…";
+      pollTimer = setInterval(pollPairing, 1500);
     }
   } catch (e) {
     $("pair-status").textContent = "Pairing failed: " + e.message;
   }
 };
 
+async function pollPairing() {
+  if (!pairCode) return;
+  try {
+    const res = await api.pairStatus(pairCode);
+    if (res.status === "approved") onApproved();
+    else if (res.status === "expired") {
+      clearInterval(pollTimer);
+      $("pair-status").textContent = "Code expired — try again.";
+    }
+  } catch (_e) {
+    /* keep polling */
+  }
+}
+
+function onApproved() {
+  if (pollTimer) clearInterval(pollTimer);
+  $("pair-status").textContent = "Approved ✓";
+  enterDashboard();
+}
+
 $("open-web").onclick = () => {
-  // In real mode this opens the website approval page.
-  $("pair-status").textContent = "Opening website… (mock auto-approves)";
+  $("pair-status").textContent = "Approve code " + (pairCode || "——") + " on the website with your wallet.";
+};
+
+// Dev-only: simulate the website approving this device, for standalone testing against P1.
+$("dev-approve").onclick = async () => {
+  if (!pairCode) return;
+  try {
+    await api.pairApprove(pairCode, "DevWallet1111111111111111111111111111111111");
+    $("pair-status").textContent = "Approved (dev) ✓";
+  } catch (e) {
+    $("pair-status").textContent = "Dev approve failed: " + e.message;
+  }
 };
 
 async function enterDashboard() {

@@ -30,7 +30,8 @@ def main() -> None:
     rate = float(os.environ.get("RATE_USD_PER_HOUR", "0.50"))
     input_dir = os.environ.get("INPUT_DIR") or os.environ.get("AUDIO_DIR")
     job_type = os.environ.get("JOB_TYPE", "whisper")  # until backend serves real job_types
-    duration, interval = 20.0, 2.0
+    duration = float(os.environ.get("WORKER_DURATION", "20"))
+    interval = float(os.environ.get("WORKER_INTERVAL", "2"))
 
     real = has_nvidia_gpu()
     sampler = sample_gpu if real else _fake_sample
@@ -52,11 +53,18 @@ def main() -> None:
                     print(res.stdout.strip() or res.stderr.strip()[-300:])
                     return res.ok
 
-                print(run_job_once(client, worker_id, rate_usd_per_hour=rate, run_job=run_job, sample=sampler))
-                time.sleep(2)
+                result = run_job_once(client, worker_id, rate_usd_per_hour=rate, run_job=run_job, sample=sampler)
             else:
                 samples = gpu_run(duration, interval, rate) if real else fake_run(duration, interval, rate)
-                print(run_one(client, worker_id, samples, interval_seconds=interval, sleep=time.sleep))
+                result = run_one(client, worker_id, samples, interval_seconds=interval, sleep=time.sleep)
+
+            if result.get("idle"):
+                print("no work available, waiting…")
+                time.sleep(3)
+            else:
+                print(result)
+                if input_dir:
+                    time.sleep(2)
 
 
 if __name__ == "__main__":

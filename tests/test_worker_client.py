@@ -22,5 +22,7 @@ def test_report_metric_is_accepted():
 
 
 def test_complete_marks_chunk_done():
-    resp = make_client().complete("c1")
+    client = make_client()
+    chunk = client.claim("w1")
+    resp = client.complete(chunk["chunk_id"])
     assert resp["status"] == "complete"

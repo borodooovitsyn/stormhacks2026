@@ -39,9 +39,9 @@ ipcMain.handle("gpu:status", () => {
 
 ipcMain.handle("worker:start", (_e, cfg) => {
   if (worker) return { running: true };
-  const env = { ...process.env, API_URL: cfg.apiUrl, WORKER_ID: cfg.workerId };
+  const env = { ...process.env, API_URL: cfg.apiUrl, WORKER_ID: cfg.workerId, PYTHONUNBUFFERED: "1" };
   if (cfg.inputDir) env.INPUT_DIR = cfg.inputDir;
-  worker = spawn(VENV_PY, ["-m", "services.worker"], { cwd: REPO_ROOT, env });
+  worker = spawn(VENV_PY, ["-u", "-m", "services.worker"], { cwd: REPO_ROOT, env });
   const send = (d) => win && win.webContents.send("worker:log", d.toString());
   worker.stdout.on("data", send);
   worker.stderr.on("data", send);

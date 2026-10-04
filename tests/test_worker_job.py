@@ -37,6 +37,26 @@ def test_meters_real_duration_and_completes():
     assert spy.metrics[0].gpu_util_pct == 90.0
 
 
+class IdleSpy(SpyClient):
+    def claim(self, worker_id):
+        return {"chunk_id": "", "job_id": "", "job_type": "idle", "input_url": ""}
+
+
+def test_run_job_once_skips_idle_claim():
+    spy = IdleSpy()
+    ran = []
+    summary = run_job_once(
+        spy, "w1",
+        rate_usd_per_hour=0.50,
+        run_job=lambda c: ran.append(1) or True,
+        sample=lambda: (0.0, 0),
+        clock=iter([0.0, 1.0]).__next__,
+    )
+    assert summary["idle"] is True
+    assert ran == []
+    assert spy.completed == []
+
+
 def test_failed_job_is_reported_but_still_completes():
     spy = SpyClient()
     summary = run_job_once(

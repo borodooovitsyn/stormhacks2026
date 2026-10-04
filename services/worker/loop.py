@@ -10,6 +10,10 @@ from services.worker.metering import interval_cost
 from services.worker.runner import Sample
 
 
+def _is_idle(chunk: dict) -> bool:
+    return chunk.get("job_type") == "idle" or not chunk.get("chunk_id")
+
+
 def run_one(
     client: BackendClient,
     worker_id: str,
@@ -19,6 +23,8 @@ def run_one(
     sleep: Callable[[float], None] = lambda _s: None,
 ) -> dict:
     chunk = client.claim(worker_id)
+    if _is_idle(chunk):
+        return {"idle": True}
     reported = 0
     total_cost = 0.0
     for sample in samples:
@@ -45,6 +51,8 @@ def run_job_once(
     clock: Callable[[], float] = time.monotonic,
 ) -> dict:
     chunk = client.claim(worker_id)
+    if _is_idle(chunk):
+        return {"idle": True}
     started = clock()
     ok = run_job(chunk)
     elapsed = clock() - started
