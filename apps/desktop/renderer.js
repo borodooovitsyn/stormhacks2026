@@ -4,7 +4,7 @@ let paired = false;
 let sharing = false;
 
 const $ = (id) => document.getElementById(id);
-const money = (n) => "$" + Number(n || 0).toFixed(4);
+const money = (n) => Number(n || 0).toFixed(4) + " SOL";
 
 async function init() {
   cfg = await window.desktop.getConfig();

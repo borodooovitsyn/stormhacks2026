@@ -1,5 +1,5 @@
 import { FloodMap } from "@/components/FloodMap";
-import { PreviewBadge, usd } from "@/components/ui";
+import { PreviewBadge, sol } from "@/components/ui";
 import { estimateJob } from "@/lib/pending";
 
 // Same estimate maths as /rent, so the sample matches what a visitor will see there.
@@ -18,7 +18,7 @@ export function RentSample() {
         <span className="num text-sm text-muted">
           {UNITS} frames · {est.chunks} chunks · ~{est.eta_min} min
         </span>
-        <span className="num text-lg font-semibold text-accent">{usd(est.cost_usd)}</span>
+        <span className="num text-lg font-semibold text-accent">{sol(est.cost_usd)}</span>
       </figcaption>
       <p className="mt-2 text-xs text-muted">Same UI works for audio, images, Blender, LLM, or a custom image.</p>
     </figure>

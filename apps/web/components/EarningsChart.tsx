@@ -38,7 +38,7 @@ export function EarningsChart({ series }: { series: EarningsPoint[] }) {
               tickLine={false}
               axisLine={false}
               width={52}
-              tickFormatter={(v: number) => `$${v.toFixed(2)}`}
+              tickFormatter={(v: number) => v.toFixed(2)}
             />
             <Tooltip
               contentStyle={{
@@ -51,7 +51,7 @@ export function EarningsChart({ series }: { series: EarningsPoint[] }) {
               labelStyle={{ color: "var(--muted)" }}
               itemStyle={{ color: "var(--text)" }}
               labelFormatter={(l) => fmtTime(Number(l))}
-              formatter={(v) => [`$${Number(v).toFixed(4)}`, "Earned"]}
+              formatter={(v) => [`${Number(v).toFixed(4)} SOL`, "Earned"]}
             />
             <Area
               type="monotone"
@@ -70,14 +70,14 @@ export function EarningsChart({ series }: { series: EarningsPoint[] }) {
         <thead>
           <tr>
             <th scope="col">Time</th>
-            <th scope="col">Earned (USD)</th>
+            <th scope="col">Earned (SOL)</th>
           </tr>
         </thead>
         <tbody>
           {data.map((d) => (
             <tr key={d.t}>
               <th scope="row">{fmtTime(d.t)}</th>
-              <td>${d.usd.toFixed(4)}</td>
+              <td>{d.usd.toFixed(4)} SOL</td>
             </tr>
           ))}
         </tbody>

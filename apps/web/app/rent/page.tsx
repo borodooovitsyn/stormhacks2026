@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { WORKLOADS, estimateJob, type WorkloadPreset } from "@/lib/pending";
-import { Button, Card, PageHeader, PreviewBadge, usd } from "@/components/ui";
+import { Button, Card, PageHeader, PreviewBadge, sol } from "@/components/ui";
 import { Tooltip } from "@/components/ui/tooltip-card";
 
 const PRESETS: WorkloadPreset[] = ["transcribe", "images", "blender", "custom"];
@@ -203,7 +203,7 @@ export default function RentPage() {
             <Row k="Workers" v={est.workers ? `${est.workers} GPUs` : "—"} />
             <Row k="Runtime" v={est.eta_min ? `~${est.eta_min} min` : "—"} />
             <div className="border-t border-border pt-3">
-              <Row k="Estimated cost" v={est.cost_usd ? usd(est.cost_usd, 2) : "—"} strong />
+              <Row k="Estimated cost" v={est.cost_usd ? sol(est.cost_usd, 2) : "—"} strong />
             </div>
           </dl>
           <div className="mt-5 [&>*]:w-full">
@@ -221,7 +221,7 @@ export default function RentPage() {
               ? "Add at least one input file to estimate the queue."
               : !image.trim()
                 ? "Add a container image before running."
-                : `Est: ~${usd(est.cost_usd, 2)} · ~${est.eta_min} min across ${est.workers} GPUs`}
+                : `Est: ~${sol(est.cost_usd, 2)} · ~${est.eta_min} min across ${est.workers} GPUs`}
           </p>
         </Card>
       </div>

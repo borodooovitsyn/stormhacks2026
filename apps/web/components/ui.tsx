@@ -133,6 +133,6 @@ export function EmptyState({
   );
 }
 
-export const usd = (n: number, digits = 4) => `$${n.toFixed(digits)}`;
+export const sol = (n: number, digits = 4) => `${n.toFixed(digits)} SOL`;
 
 export const shortAddr = (a: string) => (a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a);

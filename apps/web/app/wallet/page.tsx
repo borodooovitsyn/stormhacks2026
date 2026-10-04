@@ -8,14 +8,14 @@ import { useAuth } from "@/components/Providers";
 import { KycPanel } from "@/components/KycPanel";
 import { Tooltip } from "@/components/ui/tooltip-card";
 import { SAMPLE_BALANCE_USD, SAMPLE_PAYOUTS } from "@/lib/pending";
-import { Button, Card, EmptyState, PageHeader, PreviewBadge, usd } from "@/components/ui";
+import { Button, Card, EmptyState, PageHeader, PreviewBadge, sol } from "@/components/ui";
 
 export default function WalletPage() {
   const { publicKey, connected } = useWallet();
   const { connection } = useConnection();
   const { setVisible } = useWalletModal();
   const { token, signIn, signingIn, error } = useAuth();
-  const [sol, setSol] = useState<number | "error" | null>(null);
+  const [walletSol, setWalletSol] = useState<number | "error" | null>(null);
   const [copied, setCopied] = useState(false);
   const [amount, setAmount] = useState(10);
   const [note, setNote] = useState<string | null>(null);
@@ -25,8 +25,8 @@ export default function WalletPage() {
     let cancelled = false;
     connection
       .getBalance(publicKey)
-      .then((l) => !cancelled && setSol(l / LAMPORTS_PER_SOL))
-      .catch(() => !cancelled && setSol("error"));
+      .then((l) => !cancelled && setWalletSol(l / LAMPORTS_PER_SOL))
+      .catch(() => !cancelled && setWalletSol("error"));
     return () => {
       cancelled = true;
     };
@@ -101,12 +101,12 @@ export default function WalletPage() {
             </Tooltip>
             )
           </p>
-          {sol === null ? (
+          {walletSol === null ? (
             <div className="skeleton mt-2 h-9 w-36" />
-          ) : sol === "error" ? (
+          ) : walletSol === "error" ? (
             <p className="mt-2 text-sm text-danger">Couldn’t read the balance from devnet. Reload to retry.</p>
           ) : (
-            <p className="num mt-1 text-3xl font-semibold tracking-tight">{sol.toFixed(3)} SOL</p>
+            <p className="num mt-1 text-3xl font-semibold tracking-tight">{walletSol.toFixed(3)} SOL</p>
           )}
         </Card>
         <Card>
@@ -114,7 +114,7 @@ export default function WalletPage() {
             <p className="text-sm text-muted">Credit balance</p>
             <PreviewBadge />
           </div>
-          <p className="num mt-1 text-3xl font-semibold tracking-tight">{usd(SAMPLE_BALANCE_USD, 2)}</p>
+          <p className="num mt-1 text-3xl font-semibold tracking-tight">{sol(SAMPLE_BALANCE_USD, 2)}</p>
           <fieldset className="mt-5">
             <legend className="mb-2 text-sm text-muted">Add credits</legend>
             <div className="flex flex-wrap items-center gap-2">
@@ -129,7 +129,7 @@ export default function WalletPage() {
                     className="peer sr-only"
                   />
                   <span className="num inline-flex h-10 min-w-14 items-center justify-center rounded-lg border border-border px-3 text-sm transition-colors hover:bg-surface-2 peer-checked:border-accent peer-checked:text-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
-                    ${v}
+                    {v} SOL
                   </span>
                 </label>
               ))}
@@ -138,7 +138,7 @@ export default function WalletPage() {
                   setNote("Deposits are waiting on the escrow endpoint (POST /wallet/deposit). Nothing was charged.")
                 }
               >
-                Deposit ${amount}
+                Deposit {amount} SOL
               </Button>
             </div>
           </fieldset>
@@ -160,7 +160,7 @@ export default function WalletPage() {
             <li key={p.id} className="flex items-center justify-between gap-3 py-3 text-sm">
               <span className="font-mono text-muted">{p.signature}</span>
               <span className="text-xs text-muted">{p.ago_min} min ago</span>
-              <span className="num font-medium text-accent">+{usd(p.amount_usd)}</span>
+              <span className="num font-medium text-accent">+{sol(p.amount_usd)}</span>
             </li>
           ))}
         </ul>

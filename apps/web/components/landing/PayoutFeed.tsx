@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PreviewBadge, usd } from "@/components/ui";
+import { PreviewBadge, sol } from "@/components/ui";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 // Made-up rows cycled forever. Never real payouts; the badge says so.
@@ -58,7 +58,7 @@ export function PayoutFeed() {
           >
             <span className="font-mono text-muted">{r.sig}</span>
             <span className="num text-xs text-muted">{ago(r.age)}</span>
-            <span className="num font-medium text-accent">+{usd(r.usd)}</span>
+            <span className="num font-medium text-accent">+{sol(r.usd)}</span>
           </li>
         ))}
       </ul>
