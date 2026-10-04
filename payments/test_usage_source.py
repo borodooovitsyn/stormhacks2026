@@ -8,7 +8,7 @@ class EarningsResponseTests(unittest.TestCase):
     def test_from_dict_converts_backend_response(self) -> None:
         data = {
             "worker_id": "job-4a8ec471",
-            "payout_wallet": "DevnetProviderWallet111111111111111111111111",
+            "payout_wallet": "2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B",
             "earnings_today_usd": 0.03,
             "earnings_total_usd": 0.15,
             "series": [
@@ -28,7 +28,7 @@ class EarningsResponseTests(unittest.TestCase):
         self.assertEqual(earnings.worker_id, "job-4a8ec471")
         self.assertEqual(
             earnings.payout_wallet,
-            "DevnetProviderWallet111111111111111111111111",
+            "2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B",
         )
         self.assertEqual(
             earnings.earnings_today_usd,
@@ -43,7 +43,7 @@ class EarningsResponseTests(unittest.TestCase):
     def test_to_usage_records(self) -> None:
         earnings = EarningsResponse(
             worker_id="job-4a8ec471",
-            payout_wallet="DevnetProviderWallet111111111111111111111111",
+            payout_wallet="2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B",
             earnings_today_usd=Decimal("0.03"),
             earnings_total_usd=Decimal("0.15"),
             series=[
@@ -65,13 +65,13 @@ class EarningsResponseTests(unittest.TestCase):
             [
                 UsageRecord(
                     worker_id="job-4a8ec471",
-                    payout_wallet="DevnetProviderWallet111111111111111111111111",
+                    payout_wallet="2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B",
                     bucket="2026-10-03T19:50:00Z",
                     cost_usd=Decimal("0.01"),
                 ),
                 UsageRecord(
                     worker_id="job-4a8ec471",
-                    payout_wallet="DevnetProviderWallet111111111111111111111111",
+                    payout_wallet="2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B",
                     bucket="2026-10-03T19:51:00Z",
                     cost_usd=Decimal("0.02"),
                 ),
@@ -81,7 +81,7 @@ class EarningsResponseTests(unittest.TestCase):
     def test_empty_series_returns_no_usage_records(self) -> None:
         data = {
             "worker_id": "job-4a8ec471",
-            "payout_wallet": "DevnetProviderWallet111111111111111111111111",
+            "payout_wallet": "2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B",
             "earnings_today_usd": 0,
             "earnings_total_usd": 0,
             "series": [],

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from decimal import Decimal
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from payments.solana_clients import SolanaPaymentClient
 from payments.state import SettlementState
@@ -14,6 +14,22 @@ class SettlementResult:
     amount_sol: Decimal
     record_count: int
     signature: str
+
+
+def is_closed_bucket(bucket: int) -> bool:
+    bucket_time = datetime.fromtimestamp(
+        bucket,
+        tz=timezone.utc,
+    )
+
+    now = datetime.now(timezone.utc)
+
+    current_minute = now.replace(
+        second=0,
+        microsecond=0,
+    )
+
+    return bucket_time < current_minute
 
 
 class SettlementEngine:
@@ -34,7 +50,15 @@ class SettlementEngine:
 
         records = await self.usage_source.get_usage(worker_id)
 
-        unsettled = self.state.get_unsettled(records)
+        closed_records = [
+            record
+            for record in records
+            if is_closed_bucket(record.bucket)
+        ]
+
+        unsettled = self.state.get_unsettled(
+            closed_records
+        )
 
         if not unsettled:
             return None
@@ -79,17 +103,3 @@ class SettlementEngine:
             record_count=len(unsettled),
             signature=signature,
         )
-
-def is_closed_bucket(bucket: str) -> bool:
-    bucket_time = datetime.fromisoformat(
-        bucket.replace("Z", "+00:00")
-    )
-
-    now = datetime.now(timezone.utc)
-
-    current_minute = now.replace(
-        second=0,
-        microsecond=0,
-    )
-
-    return bucket_time < current_minute

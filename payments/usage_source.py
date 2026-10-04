@@ -9,7 +9,7 @@ import httpx
 class UsageRecord:
     worker_id: str
     payout_wallet: str
-    bucket: str
+    bucket: int
     cost_usd: Decimal
 
 

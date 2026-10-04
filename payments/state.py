@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from payments.usage_source import UsageRecord
@@ -60,13 +61,45 @@ class SettlementState:
         self,
         records: list[UsageRecord],
     ) -> list[UsageRecord]:
-        settled = self.data["settled"]
+        unsettled = []
 
-        return [
-            record
-            for record in records
-            if self._record_key(record) not in settled
-        ]
+        for record in records:
+            key = self._record_key(record)
+            previous = self.data["settled"].get(key)
+
+            if previous is None:
+                unsettled.append(record)
+                continue
+
+            if previous["payout_wallet"] != record.payout_wallet:
+                raise ValueError(
+                    f"Payout wallet changed for {key}"
+                )
+
+            settled_cost = Decimal(
+                previous["cost_usd"]
+            )
+
+            if record.cost_usd < settled_cost:
+                raise ValueError(
+                    f"Backend cost decreased for {key}"
+                )
+
+            remaining_cost = (
+                record.cost_usd - settled_cost
+            )
+
+            if remaining_cost > 0:
+                unsettled.append(
+                    UsageRecord(
+                        worker_id=record.worker_id,
+                        payout_wallet=record.payout_wallet,
+                        bucket=record.bucket,
+                        cost_usd=remaining_cost,
+                    )
+                )
+
+        return unsettled
 
     def mark_settled(
         self,
@@ -76,11 +109,21 @@ class SettlementState:
         for record in records:
             key = self._record_key(record)
 
+            previous = self.data["settled"].get(key)
+
+            if previous is None:
+                total_settled = record.cost_usd
+            else:
+                total_settled = (
+                    Decimal(previous["cost_usd"])
+                    + record.cost_usd
+                )
+
             self.data["settled"][key] = {
                 "worker_id": record.worker_id,
                 "payout_wallet": record.payout_wallet,
                 "bucket": record.bucket,
-                "cost_usd": str(record.cost_usd),
+                "cost_usd": str(total_settled),
                 "signature": signature,
             }
 

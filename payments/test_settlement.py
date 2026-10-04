@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import AsyncMock
@@ -17,17 +18,18 @@ class SettlementEngineTests(unittest.IsolatedAsyncioTestCase):
             Path(self.temp_dir.name) / "settlement_state.json"
         )
 
+        # Old timestamps so these buckets are guaranteed to be closed.
         self.records = [
             UsageRecord(
                 worker_id="worker-1",
                 payout_wallet="ProviderWallet123",
-                bucket="2026-10-03T20:01:00Z",
+                bucket=1700000000,
                 cost_usd=Decimal("0.001"),
             ),
             UsageRecord(
                 worker_id="worker-1",
                 payout_wallet="ProviderWallet123",
-                bucket="2026-10-03T20:02:00Z",
+                bucket=1700000060,
                 cost_usd=Decimal("0.002"),
             ),
         ]
@@ -119,13 +121,13 @@ class SettlementEngineTests(unittest.IsolatedAsyncioTestCase):
             UsageRecord(
                 worker_id="worker-1",
                 payout_wallet="ProviderWalletA",
-                bucket="2026-10-03T20:01:00Z",
+                bucket=1700000000,
                 cost_usd=Decimal("0.001"),
             ),
             UsageRecord(
                 worker_id="worker-1",
                 payout_wallet="ProviderWalletB",
-                bucket="2026-10-03T20:02:00Z",
+                bucket=1700000060,
                 cost_usd=Decimal("0.002"),
             ),
         ]
@@ -139,6 +141,29 @@ class SettlementEngineTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_returns_none_when_no_usage_exists(self) -> None:
         self.usage_source.get_usage.return_value = []
+
+        result = await self.engine.settle_worker(
+            "worker-1"
+        )
+
+        self.assertIsNone(result)
+        self.payment_client.pay.assert_not_awaited()
+
+    async def test_does_not_settle_current_minute(self) -> None:
+        current_bucket = int(
+            datetime.now(timezone.utc)
+            .replace(second=0, microsecond=0)
+            .timestamp()
+        )
+
+        self.usage_source.get_usage.return_value = [
+            UsageRecord(
+                worker_id="worker-1",
+                payout_wallet="ProviderWallet123",
+                bucket=current_bucket,
+                cost_usd=Decimal("0.001"),
+            )
+        ]
 
         result = await self.engine.settle_worker(
             "worker-1"

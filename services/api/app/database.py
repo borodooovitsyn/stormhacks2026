@@ -19,7 +19,7 @@ except ImportError:  # pragma: no cover - dependency is installed by make setup
 
 
 DEFAULT_DATABASE_URL = "postgresql://postgres:postgres@localhost:5433/gpushare"
-DEFAULT_PAYOUT_WALLET = "DevnetProviderWallet111111111111111111111111"
+DEFAULT_PAYOUT_WALLET = "2oUn6uDrZksDSW17DAvnfVMvkMTBJ2a9CQonfuEF9D6B"
 
 
 @dataclass
