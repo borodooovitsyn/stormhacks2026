@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 import { WORKLOADS, estimateJob, type WorkloadPreset } from "@/lib/pending";
 import { Button, Card, PageHeader, PreviewBadge, usd } from "@/components/ui";
 import { Tooltip } from "@/components/ui/tooltip-card";
@@ -20,6 +21,8 @@ export default function RentPage() {
   const [image, setImage] = useState(WORKLOADS.transcribe.image);
   const [files, setFiles] = useState<File[]>([]);
   const [drag, setDrag] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const meta = WORKLOADS[preset];
   const units = Math.max(files.length, preset === "blender" && files.length ? 50 : files.length);
@@ -37,7 +40,9 @@ export default function RentPage() {
     if (next !== "custom") setImage(WORKLOADS[next].image);
   };
 
-  const run = () => {
+  const run = async () => {
+    setRunning(true);
+    setError(null);
     const params = new URLSearchParams({
       type: preset,
       units: String(estimateUnits),
@@ -45,7 +50,20 @@ export default function RentPage() {
       image: image.trim(),
       files: String(files.length),
     });
-    router.push(`/jobs/demo?${params.toString()}`);
+    try {
+      const created = await api.createJob({
+        job_type: preset,
+        image: image.trim(),
+        input_url: `mock://web-upload/${files.map((file) => encodeURIComponent(file.name)).join(",")}`,
+        total_units: estimateUnits,
+        requested_chunks: Math.max(1, est.chunks),
+      });
+      router.push(`/jobs/${created.job_id}?${params.toString()}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create the job");
+    } finally {
+      setRunning(false);
+    }
   };
 
   return (
@@ -189,10 +207,15 @@ export default function RentPage() {
             </div>
           </dl>
           <div className="mt-5 [&>*]:w-full">
-            <Button onClick={run} disabled={!canRun}>
-              Run job
+            <Button onClick={run} disabled={!canRun || running}>
+              {running ? "Queueing..." : "Run job"}
             </Button>
           </div>
+          {error && (
+            <p className="mt-3 text-sm text-danger" role="alert">
+              {error}. Start the backend with <code className="font-mono text-text">make api</code>.
+            </p>
+          )}
           <p className="mt-3 text-xs text-muted" aria-live="polite">
             {!files.length
               ? "Add at least one input file to estimate the queue."

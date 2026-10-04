@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { api } from "@/lib/api";
+import { api, desktopDownloadUrl } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
 import { SAMPLE_PAYOUTS } from "@/lib/pending";
 import { EarningsChart } from "@/components/EarningsChart";
@@ -20,15 +20,23 @@ export default function ProviderPage() {
         title="Provider dashboard"
         subtitle="Earnings from your shared GPU, aggregated per minute and paid out in SOL on devnet."
         action={
-          <label className="flex items-center gap-2 text-sm text-muted">
-            Worker
-            <input
-              value={workerId}
-              onChange={(e) => setWorkerId(e.target.value.trim() || "demo-worker")}
-              className="h-10 w-44 rounded-[10px] border border-border bg-surface px-3 text-text outline-none focus:border-accent"
-              aria-label="Worker ID"
-            />
-          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={desktopDownloadUrl}
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-text transition-colors hover:bg-surface-2"
+            >
+              Download desktop app
+            </a>
+            <label className="flex items-center gap-2 text-sm text-muted">
+              Worker
+              <input
+                value={workerId}
+                onChange={(e) => setWorkerId(e.target.value.trim() || "demo-worker")}
+                className="h-10 w-44 rounded-[10px] border border-border bg-surface px-3 text-text outline-none focus:border-accent"
+                aria-label="Worker ID"
+              />
+            </label>
+          </div>
         }
       />
 

@@ -36,3 +36,31 @@ def test_contract_endpoints_respond():
 
     earn = client.get("/earnings/w1").json()
     assert earn["payout_wallet"] and isinstance(earn["series"], list)
+
+
+def test_job_status_includes_container_image():
+    created = client.post(
+        "/jobs",
+        json={
+            "job_type": "blender",
+            "image": "gpu-share/blender:cuda",
+            "input_url": "mock://demo/scene.blend",
+            "total_units": 20,
+            "requested_chunks": 4,
+        },
+    ).json()
+
+    assert created["image"] == "gpu-share/blender:cuda"
+    status = client.get(f"/jobs/{created['job_id']}").json()
+    assert status["image"] == "gpu-share/blender:cuda"
+    assert status["chunk_count"] == 4
+    assert status["chunks"][0]["image"] == "gpu-share/blender:cuda"
+
+
+def test_desktop_download_endpoint_serves_zip():
+    response = client.get("/downloads/desktop")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert "gpu-share-desktop.zip" in response.headers["content-disposition"]
+    assert response.content.startswith(b"PK")

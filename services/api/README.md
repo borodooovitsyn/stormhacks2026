@@ -44,6 +44,8 @@ Never commit `.env`, wallets, keypairs, or production secrets. Solana integratio
 Additive integration endpoints:
 
 - `POST /jobs` queues a job and splits it into chunks.
+- `GET /jobs/{job_id}` returns job, chunk, worker, and result status for the live job view.
+- `GET /downloads/desktop` serves the current desktop app bundle as a zip for demo downloads.
 - `GET /devices/pair/{code}` polls a pairing session.
 - `POST /devices/pair/{code}/approve` approves a pairing session from the web client.
 
@@ -54,8 +56,11 @@ Queue a three-chunk job:
 ```bash
 curl -X POST http://127.0.0.1:8000/jobs \
   -H 'Content-Type: application/json' \
-  -d '{"job_type":"segmentation","input_url":"mock://demo/flood-map.tif","total_units":10,"requested_chunks":3}'
+  -d '{"job_type":"blender","image":"gpu-share/blender:cuda","input_url":"mock://demo/scene.blend","total_units":50,"requested_chunks":5}'
 ```
+
+Workers receive the same `image` field from `/workers/{worker_id}/claim`. The worker contract is:
+mount inputs at `/input`, write outputs to `/output`, and run the container sandboxed.
 
 Claim work using a stable provider identifier, not a job identifier:
 

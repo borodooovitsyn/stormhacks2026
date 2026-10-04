@@ -48,6 +48,7 @@ class Chunk:
     chunk_id: str
     job_id: str
     job_type: str
+    image: str
     input_url: str
     start_unit: int
     end_unit: int
@@ -61,6 +62,7 @@ class Chunk:
 class Job:
     job_id: str
     job_type: str
+    image: str
     input_url: str
     total_units: int
     requested_chunks: int
@@ -78,6 +80,7 @@ class InMemoryJobQueue:
         self,
         *,
         job_type: str,
+        image: str,
         input_url: str,
         total_units: int,
         requested_chunks: int,
@@ -88,6 +91,7 @@ class InMemoryJobQueue:
         job = Job(
             job_id=job_id,
             job_type=job_type,
+            image=image,
             input_url=input_url,
             total_units=total_units,
             requested_chunks=requested_chunks,
@@ -103,6 +107,7 @@ class InMemoryJobQueue:
                     chunk_id=chunk_id,
                     job_id=job_id,
                     job_type=job_type,
+                    image=image,
                     input_url=chunk_input_url(input_url, start, end, index, len(ranges)),
                     start_unit=start,
                     end_unit=end,
@@ -112,6 +117,17 @@ class InMemoryJobQueue:
 
             self._jobs[job_id] = job
             return job
+
+    def get_job(self, job_id: str) -> Job | None:
+        with self._lock:
+            return self._jobs.get(job_id)
+
+    def chunks_for_job(self, job_id: str) -> list[Chunk]:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                return []
+            return [self._chunks[chunk_id] for chunk_id in job.chunk_ids]
 
     def claim_next(self, worker_id: str) -> Chunk | None:
         with self._lock:
@@ -142,6 +158,7 @@ class InMemoryJobQueue:
         self.create_job(
             job_id=f"job-demo-{secrets.token_hex(2)}",
             job_type="segmentation",
+            image="gpu-share/imageproc:cpu",
             input_url="mock://flood-watch/tile-batch.tif",
             total_units=6,
             requested_chunks=6,

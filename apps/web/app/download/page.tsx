@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api, type PairResult } from "@/lib/api";
+import { api, desktopDownloadUrl, type PairResult } from "@/lib/api";
 import { Button, Card, PageHeader } from "@/components/ui";
 import { Tooltip } from "@/components/ui/tooltip-card";
 
@@ -40,11 +40,9 @@ export default function DownloadPage() {
             and schedule.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Button href="#" variant="ghost">Windows</Button>
-            <Button href="#" variant="ghost">macOS</Button>
-            <Button href="#" variant="ghost">Linux</Button>
+            <Button href={desktopDownloadUrl} variant="ghost">Download zip</Button>
           </div>
-          <p className="mt-3 text-xs text-muted">Installers aren’t published yet; links will go live with the first build.</p>
+          <p className="mt-3 text-xs text-muted">Backend serves the current desktop app bundle as a zip for the demo.</p>
         </Card>
 
         <Card>
