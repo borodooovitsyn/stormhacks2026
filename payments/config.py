@@ -1,6 +1,7 @@
 import os
 
-DEVNET_RPC_URL = "https://api.devnet.solana.com"
+# RPC_URL lets you swap in a faucet-friendly devnet endpoint (e.g. Helius) for airdrops.
+DEVNET_RPC_URL = os.getenv("RPC_URL", "https://api.devnet.solana.com")
 
 
 def get_payout_keypair_path() -> str:

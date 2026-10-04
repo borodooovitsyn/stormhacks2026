@@ -1,4 +1,4 @@
-.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc mps-on
+.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc mps-on settle wallets balance
 
 VENV = .venv
 PYTHON ?= python3.12
@@ -32,6 +32,15 @@ imageproc:  ## build the demo image-processing workload (proves any image runs)
 
 mps-on:  ## start NVIDIA MPS on the provider host (enables % GPU caps; Linux/WSL2)
 	nvidia-cuda-mps-control -d && echo "MPS daemon started"
+
+wallets:  ## generate demo payer + provider devnet wallets (+ funding instructions)
+	$(VENV)/bin/python -m payments.demo wallets
+
+balance:  ## devnet balance of an address -- make balance ADDR=<pubkey>
+	$(VENV)/bin/python -m payments.demo balance $(ADDR)
+
+settle:  ## run the payout settlement loop (needs PAYOUT_KEYPAIR_PATH + SETTLEMENT_WORKER_IDS)
+	$(VENV)/bin/python -m payments.run_settlement
 
 test:  ## run the test suite
 	$(VENV)/bin/pytest -q
