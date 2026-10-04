@@ -142,6 +142,28 @@ export const api = {
     }),
   earnings: (workerId: string) =>
     request<Earnings>(`/earnings/${encodeURIComponent(workerId)}`),
+  walletWorkers: (wallet: string) =>
+    request<{ wallet: string; worker_ids: string[] }>(
+      `/wallets/${encodeURIComponent(wallet)}/workers`,
+    ),
+  walletEarnings: (wallet: string) =>
+    request<Earnings>(`/wallets/${encodeURIComponent(wallet)}/earnings`),
+  credits: (wallet: string) =>
+    request<{ wallet: string; credit_sol: number }>(`/wallets/${encodeURIComponent(wallet)}/credits`),
+  deposit: (wallet: string, amount_sol: number, signature: string) =>
+    request<{ wallet: string; credit_sol: number }>(`/wallets/${encodeURIComponent(wallet)}/deposit`, {
+      method: "POST",
+      body: JSON.stringify({ amount_sol, signature }),
+    }),
+  payouts: (wallet: string) =>
+    request<{ wallet: string; payouts: { signature: string; amount_sol: number; ts: number }[] }>(
+      `/payouts/${encodeURIComponent(wallet)}`,
+    ),
+  linkAccount: (email: string, wallet: string) =>
+    request<{ email: string; wallet: string }>("/accounts", {
+      method: "POST",
+      body: JSON.stringify({ email, wallet }),
+    }),
   createJob: (job: JobCreateInput) =>
     request<JobCreateResult>("/jobs", {
       method: "POST",

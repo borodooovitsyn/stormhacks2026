@@ -9,7 +9,7 @@ import { ConnectStop } from "@/components/landing/ConnectStop";
 
 const STEPS = [
   {
-    t: "Dump your files on us",
+    t: "Dump your workflows on us",
     d: (
       <>
         Audio, images, Blender scenes, model inputs.{" "}

@@ -24,9 +24,12 @@ from pydantic import BaseModel, Field
 
 from services.api.app.artifacts import ArtifactStore, ArtifactTooLarge
 from services.api.app.auth import AuthError, AuthService
+from services.api.app.credits import CreditLedger
 from services.api.app.database import MetricsRepository
 from services.api.app.jobs import InMemoryJobQueue
+from services.api.app.links import LinkStore
 from services.api.app.pairing import PairingStore
+from services.api.app.payouts import read_payouts
 
 app = FastAPI(title="GPU Share API", version="0.1.0")
 
@@ -43,6 +46,8 @@ metrics_repo = MetricsRepository()
 auth_service = AuthService()
 pairing_store = PairingStore()
 artifact_store = ArtifactStore()
+link_store = LinkStore()
+credit_ledger = CreditLedger()
 
 
 def _now() -> str:
@@ -107,7 +112,77 @@ def devices_pair_approve(code: str, req: PairApproveRequest) -> dict:
         raise HTTPException(status_code=404, detail="pairing code not found")
     if session.status == "expired":
         raise HTTPException(status_code=410, detail="pairing code expired")
+    # Link this device's worker to the approving wallet -> earnings pay this wallet.
+    link_store.link_worker(session.worker_id, req.wallet)
     return session.as_response()
+
+
+@app.get("/wallets/{wallet}/workers")
+def wallet_workers(wallet: str) -> dict:
+    return {"wallet": wallet, "worker_ids": link_store.workers_for_wallet(wallet)}
+
+
+class DepositRequest(BaseModel):
+    amount_sol: float = Field(gt=0)
+    signature: str = Field(min_length=1)
+
+
+@app.get("/wallets/{wallet}/credits")
+def wallet_credits(wallet: str) -> dict:
+    return {"wallet": wallet, "credit_sol": credit_ledger.balance(wallet)}
+
+
+@app.post("/wallets/{wallet}/deposit")
+def wallet_deposit(wallet: str, req: DepositRequest) -> dict:
+    balance = credit_ledger.deposit(wallet, req.amount_sol, req.signature)
+    return {"wallet": wallet, "credit_sol": balance}
+
+
+@app.get("/wallets/{wallet}/earnings")
+def wallet_earnings(wallet: str) -> dict:
+    # Aggregate across every worker linked to this wallet so the web shows the
+    # account total regardless of which device/worker produced it.
+    workers = link_store.workers_for_wallet(wallet)
+    today = total = 0.0
+    buckets: dict[int, float] = {}
+    for wid in workers:
+        e = metrics_repo.earnings(wid)
+        today += e["earnings_today_usd"]
+        total += e["earnings_total_usd"]
+        for point in e["series"]:
+            buckets[point["bucket"]] = buckets.get(point["bucket"], 0.0) + point["cost_usd"]
+    series = [{"bucket": b, "cost_usd": round(c, 6)} for b, c in sorted(buckets.items())]
+    return {
+        "worker_id": workers[0] if workers else "",
+        "payout_wallet": wallet,
+        "earnings_today_usd": round(today, 6),
+        "earnings_total_usd": round(total, 6),
+        "series": series,
+    }
+
+
+@app.get("/payouts/{wallet}")
+def payouts(wallet: str) -> dict:
+    return {"wallet": wallet, "payouts": read_payouts(wallet)}
+
+
+class AccountRegister(BaseModel):
+    email: str
+    wallet: str
+
+
+@app.post("/accounts")
+def register_account(req: AccountRegister) -> dict:
+    link_store.register_account(req.email, req.wallet)
+    return {"email": req.email, "wallet": req.wallet}
+
+
+@app.get("/accounts/{email}/wallet")
+def account_wallet(email: str) -> dict:
+    wallet = link_store.wallet_for_email(email)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="account not linked to a wallet")
+    return {"email": email, "wallet": wallet}
 
 
 # --- worker loop ----------------------------------------------------------
@@ -324,7 +399,11 @@ def fail_chunk(chunk_id: str, failure: ChunkFailure) -> dict:
 
 @app.get("/earnings/{worker_id}")
 def earnings(worker_id: str) -> dict:
-    return metrics_repo.earnings(worker_id)
+    data = metrics_repo.earnings(worker_id)
+    linked = link_store.wallet_for_worker(worker_id)
+    if linked:
+        data["payout_wallet"] = linked
+    return data
 
 
 @app.get("/downloads/desktop")

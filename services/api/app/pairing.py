@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import secrets
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+def _new_worker_id() -> str:
+    return "worker-" + secrets.token_hex(4)
 
 
 @dataclass
@@ -13,12 +17,15 @@ class PairSession:
     device_token: str
     status: str
     expires_at: float
+    worker_id: str = field(default_factory=_new_worker_id)
     wallet: str | None = None
 
     def as_response(self) -> dict:
         return {
             "code": self.code,
             "device_token": self.device_token,
+            "worker_id": self.worker_id,
+            "wallet": self.wallet,
             "status": self.status,
         }
 
@@ -36,6 +43,7 @@ class PairingStore:
         session = PairSession(
             code=code,
             device_token="device-" + secrets.token_urlsafe(24),
+            worker_id=_new_worker_id(),
             status="pending",
             expires_at=time.time() + self.ttl_seconds,
         )

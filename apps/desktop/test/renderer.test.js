@@ -58,6 +58,7 @@ test("dashboard renders live earnings without demo globals", async () => {
     GpuShareApi: {
       createApi: () => ({
         pair: async () => ({ status: "approved", device_token: "token" }),
+        payouts: async () => ({ payouts: [] }),
         earnings: async () => ({
           payout_wallet: "1234567890abcdefghijklmnop",
           earnings_today_usd: 1.25,
@@ -78,8 +79,8 @@ test("dashboard renders live earnings without demo globals", async () => {
     assert.equal(elements.today.textContent, "$1.250000");
     assert.equal(elements.total.textContent, "$2.500000");
     assert.equal(elements.permin.textContent, "$0.750000");
-    assert.equal(elements.wallet.textContent, "12345678…klmnop");
-    assert.match(elements.payouts.innerHTML, /No settled payouts yet/);
+    assert.equal(elements.wallet.textContent, "1234…mnop");
+    assert.match(elements.payouts.innerHTML, /No payouts yet/);
     assert.equal(elements.dashboard.classList.contains("hidden"), false);
   } finally {
     global.document = previous.document;

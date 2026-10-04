@@ -167,8 +167,10 @@ function dockerReady() {
 
 ipcMain.handle("config:get", () => ({
   apiUrl: process.env.API_URL || "http://localhost:8000",
-  webUrl: process.env.WEB_URL || "http://localhost:3000",
+  webUrl: process.env.WEB_URL || "http://localhost:3001",
   workerId: process.env.WORKER_ID || "worker-local",
+  workerIdPinned: !!process.env.WORKER_ID,
+  inputDir: process.env.INPUT_DIR || "",
   isPackaged: app.isPackaged,
 }));
 
