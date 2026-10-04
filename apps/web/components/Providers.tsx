@@ -5,6 +5,7 @@ import { ConnectionProvider, WalletProvider, useWallet } from "@solana/wallet-ad
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import bs58 from "bs58";
+import { SessionProvider } from "next-auth/react";
 import { api, getSession, setSession as storeSession, type Session } from "@/lib/api";
 
 type AuthState = {
@@ -98,7 +99,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={[]} autoConnect>
         <WalletModalProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <SessionProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </SessionProvider>
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

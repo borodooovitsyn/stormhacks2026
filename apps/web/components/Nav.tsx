@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useSession } from "next-auth/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useAuth } from "./Providers";
 import { Logo } from "./Logo";
@@ -24,6 +25,7 @@ export function Nav() {
   const pathname = usePathname();
   const { connected } = useWallet();
   const { token, signIn, signingIn, signOut, error } = useAuth();
+  const { data: account, status: accountStatus } = useSession();
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur">
@@ -56,13 +58,31 @@ export function Nav() {
               disabled={signingIn}
               className="h-[38px] rounded-[10px] border border-accent px-4 text-sm font-semibold text-accent transition-colors hover:bg-accent/10 disabled:opacity-50"
             >
-              {signingIn ? "Check wallet…" : "Sign in"}
+              {signingIn ? "Check wallet…" : "Verify wallet"}
             </button>
           )}
-          {token && (
+          {token && !account?.user && (
             <button onClick={signOut} className="text-sm text-muted hover:text-text">
-              Sign out
+              Clear wallet session
             </button>
+          )}
+          {accountStatus === "loading" ? (
+            <div className="skeleton h-[38px] w-24" />
+          ) : account?.user ? (
+            <Link
+              href="/account"
+              className="max-w-36 truncate text-sm font-medium text-text hover:text-accent"
+              title={account.user.email ?? "Account"}
+            >
+              {account.user.email ?? "Account"}
+            </Link>
+          ) : (
+            <Link
+              href="/sign-in"
+              className="inline-flex h-[38px] items-center rounded-lg border border-border px-3 text-sm font-medium text-text transition-colors hover:bg-surface-2"
+            >
+              Sign in
+            </Link>
           )}
           <WalletMultiButton />
         </div>
