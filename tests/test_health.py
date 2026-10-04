@@ -57,10 +57,14 @@ def test_job_status_includes_container_image():
     assert status["chunks"][0]["image"] == "gpu-share/blender:cuda"
 
 
-def test_desktop_download_endpoint_serves_zip():
+def test_desktop_download_endpoint_serves_windows_app(monkeypatch, tmp_path):
+    installer = tmp_path / "CoreWhore-0.1.1-Windows-x64-Portable.exe"
+    installer.write_bytes(b"MZ-fake-installer")
+    monkeypatch.setenv("DESKTOP_DOWNLOAD_PATH", str(installer))
+
     response = client.get("/downloads/desktop")
 
     assert response.status_code == 200
-    assert response.headers["content-type"] == "application/zip"
-    assert "gpu-share-desktop.zip" in response.headers["content-disposition"]
-    assert response.content.startswith(b"PK")
+    assert response.headers["content-type"] == "application/vnd.microsoft.portable-executable"
+    assert "-Windows-x64-Portable.exe" in response.headers["content-disposition"]
+    assert response.content.startswith(b"MZ")

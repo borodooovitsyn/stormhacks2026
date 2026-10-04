@@ -45,7 +45,8 @@ Additive integration endpoints:
 
 - `POST /jobs` queues a job and splits it into chunks.
 - `GET /jobs/{job_id}` returns job, chunk, worker, and result status for the live job view.
-- `GET /downloads/desktop` serves the current desktop app bundle as a zip for demo downloads.
+- `GET /downloads/desktop` serves the latest portable Windows executable from `apps/desktop/dist`.
+  Set `DESKTOP_DOWNLOAD_PATH` when the API and desktop artifact are deployed separately.
 - `GET /devices/pair/{code}` polls a pairing session.
 - `POST /devices/pair/{code}/approve` approves a pairing session from the web client.
 

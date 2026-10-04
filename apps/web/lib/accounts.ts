@@ -5,6 +5,12 @@ import { authPool } from "@/lib/auth-db";
 import { hashPassword } from "@/lib/password";
 
 const resendApiKey = process.env.AUTH_RESEND_KEY?.trim();
+const configuredEmailFrom = process.env.AUTH_EMAIL_FROM?.trim();
+const emailFrom =
+  configuredEmailFrom && !configuredEmailFrom.includes("your-verified-domain.com")
+    ? configuredEmailFrom
+    : "CoreWhore <onboarding@resend.dev>";
+
 export const isResendConfigured = Boolean(
   resendApiKey && resendApiKey !== "re_your_api_key" && resendApiKey !== "re_replace_me",
 );
@@ -35,7 +41,7 @@ async function sendVerificationEmail(email: string, token: string) {
     method: "POST",
     headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.AUTH_EMAIL_FROM ?? "CoreWhore <onboarding@resend.dev>",
+      from: emailFrom,
       to: [email],
       subject: "Confirm your CoreWhore account",
       text: `Confirm your email by opening this link: ${url.toString()}\n\nThis link expires in 30 minutes.`,

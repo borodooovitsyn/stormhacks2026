@@ -1,0 +1,47 @@
+appId: com.corewhore.provider
+productName: CoreWhore Provider
+asar: true
+npmRebuild: false
+directories:
+  output: dist
+files:
+  - main.js
+  - preload.js
+  - renderer.js
+  - index.html
+  - style.css
+  - src/**/*
+  - fonts/**/*
+  - package.json
+extraResources:
+  - from: bin/coreshare-worker
+    to: worker
+  - from: ../../setup.ps1
+    to: setup/setup.ps1
+  - from: ../../scripts/setup-wsl.sh
+    to: setup/setup-wsl.sh
+  - from: ../../scripts/setup-mac.sh
+    to: setup/setup-mac.sh
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  executableName: CoreWhoreProvider
+  requestedExecutionLevel: asInvoker
+nsis:
+  artifactName: ${productName}-${version}-Windows-${arch}-Setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: CoreWhore Provider
+  runAfterFinish: true
+  deleteAppDataOnUninstall: false
+portable:
+  artifactName: ${productName}-${version}-Windows-${arch}-Portable.${ext}

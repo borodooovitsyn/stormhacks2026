@@ -13,14 +13,13 @@ Contract (do not break these paths/shapes without telling the team):
 
 from __future__ import annotations
 
-import io
-import zipfile
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from services.api.app.auth import AuthError, AuthService
@@ -237,20 +236,34 @@ def earnings(worker_id: str) -> dict:
 
 
 @app.get("/downloads/desktop")
-def download_desktop() -> StreamingResponse:
-    desktop_dir = Path(__file__).resolve().parents[3] / "apps" / "desktop"
-    if not desktop_dir.exists():
-        raise HTTPException(status_code=404, detail="desktop app not found")
+def download_desktop() -> FileResponse:
+    configured_path = os.environ.get("DESKTOP_DOWNLOAD_PATH") or os.environ.get(
+        "DESKTOP_INSTALLER_PATH"
+    )
+    if configured_path:
+        installer = Path(configured_path).expanduser().resolve()
+    else:
+        dist_dir = Path(__file__).resolve().parents[3] / "apps" / "desktop" / "dist"
+        portable_apps = sorted(
+            dist_dir.glob("*-Windows-*-Portable.exe"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        installers = sorted(
+            dist_dir.glob("*-Windows-*-Setup.exe"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        installer = (portable_apps or installers or [None])[0]
 
-    buffer = io.BytesIO()
-    excluded_dirs = {"node_modules", ".git", "dist", "build"}
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
-        for path in desktop_dir.rglob("*"):
-            relative = path.relative_to(desktop_dir)
-            if path.is_dir() or excluded_dirs.intersection(relative.parts):
-                continue
-            archive.write(path, Path("gpu-share-desktop") / relative)
+    if installer is None or not installer.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Windows desktop app not built; run npm run pack:win in apps/desktop",
+        )
 
-    buffer.seek(0)
-    headers = {"Content-Disposition": 'attachment; filename="gpu-share-desktop.zip"'}
-    return StreamingResponse(buffer, media_type="application/zip", headers=headers)
+    return FileResponse(
+        installer,
+        media_type="application/vnd.microsoft.portable-executable",
+        filename=installer.name,
+    )

@@ -56,7 +56,7 @@ def main() -> None:
 
                 def run_job(chunk: dict, output_dir: str = out) -> bool:
                     image = resolve_image(chunk, gpu=real, default_job_type=job_type)
-                    res = run_in_sandbox(image, input_dir, out, gpus=real,
+                    res = run_in_sandbox(image, input_dir, output_dir, gpus=real,
                                          gpu_pct=gpu_pct, vram_cap_mb=vram_cap_mb)
                     print(res.stdout.strip() or res.stderr.strip()[-300:])
                     return res.ok
