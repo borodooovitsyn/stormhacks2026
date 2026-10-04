@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from datetime import datetime, timezone
 
 from payments.solana_clients import SolanaPaymentClient
 from payments.state import SettlementState
@@ -78,3 +79,17 @@ class SettlementEngine:
             record_count=len(unsettled),
             signature=signature,
         )
+
+def is_closed_bucket(bucket: str) -> bool:
+    bucket_time = datetime.fromisoformat(
+        bucket.replace("Z", "+00:00")
+    )
+
+    now = datetime.now(timezone.utc)
+
+    current_minute = now.replace(
+        second=0,
+        microsecond=0,
+    )
+
+    return bucket_time < current_minute
