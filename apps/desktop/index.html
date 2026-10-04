@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src *; style-src 'self' 'unsafe-inline';" />
+    <title>GPU Share — Provider</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">◢ GPU Share</div>
+      <div id="conn" class="pill">—</div>
+    </header>
+
+    <!-- Pairing screen -->
+    <section id="pair-screen" class="screen">
+      <h1>Link this device</h1>
+      <p class="muted">Your wallet lives in the browser. Pair this device to your account to start earning.</p>
+      <button id="pair-btn" class="primary">Sign in / Pair device</button>
+      <div id="pair-info" class="hidden">
+        <div class="code" id="pair-code">——</div>
+        <p class="muted">Approve this code on the website with your wallet.</p>
+        <button id="open-web" class="link">Open website to approve</button>
+        <button id="dev-approve" class="link">Approve (dev / standalone)</button>
+        <div id="pair-status" class="muted">Waiting…</div>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="screen hidden">
+      <div class="grid">
+        <div class="card">
+          <div class="label">Provider</div>
+          <div class="value" id="worker-id">—</div>
+          <div class="label" style="margin-top:12px">Payout wallet</div>
+          <div class="value small" id="wallet">—</div>
+          <div class="label" style="margin-top:12px">GPU</div>
+          <div class="value small" id="gpu">—</div>
+        </div>
+        <div class="card">
+          <div class="label">Earnings today</div>
+          <div class="value big" id="today">$0.0000</div>
+          <div class="label" style="margin-top:12px">Total</div>
+          <div class="value" id="total">$0.0000</div>
+          <div class="chart" id="chart"></div>
+        </div>
+        <div class="card span2">
+          <div class="row">
+            <div>
+              <div class="label">Sharing</div>
+              <div class="value" id="share-state">Off</div>
+            </div>
+            <button id="toggle" class="primary">Start sharing</button>
+          </div>
+          <pre id="log" class="log"></pre>
+        </div>
+      </div>
+    </section>
+
+    <script src="src/api.js"></script>
+    <script src="renderer.js"></script>
+  </body>
+</html>

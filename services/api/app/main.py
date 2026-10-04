@@ -1,10 +1,5 @@
 """GPU Share backend API (FastAPI).
 
-First-commit skeleton: every endpoint is the agreed contract, returning MOCK data
-so the web client, desktop app, worker, and payments module can all build in
-parallel against a real HTTP wire format. Swap the mock bodies for real logic
-(Tiger Data, Solana, job queue) behind these unchanged signatures.
-
 Contract (do not break these paths/shapes without telling the team):
   GET  /health
   POST /auth/nonce            -> web wallet login: get a nonce to sign
@@ -18,13 +13,16 @@ Contract (do not break these paths/shapes without telling the team):
 
 from __future__ import annotations
 
-import secrets
-import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from services.api.app.auth import AuthError, AuthService
+from services.api.app.database import MetricsRepository
+from services.api.app.jobs import InMemoryJobQueue
+from services.api.app.pairing import PairingStore
 
 app = FastAPI(title="GPU Share API", version="0.1.0")
 
@@ -36,9 +34,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+job_queue = InMemoryJobQueue()
+metrics_repo = MetricsRepository()
+auth_service = AuthService()
+pairing_store = PairingStore()
+
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 # --- health ---------------------------------------------------------------
@@ -61,61 +64,121 @@ class VerifyRequest(BaseModel):
 
 @app.post("/auth/nonce")
 def auth_nonce(req: NonceRequest) -> dict:
-    # MOCK: real version stores the nonce against the wallet with a short TTL.
-    return {"wallet": req.wallet, "nonce": secrets.token_hex(16)}
+    return {"wallet": req.wallet, "nonce": auth_service.create_nonce(req.wallet)}
 
 
 @app.post("/auth/verify")
 def auth_verify(req: VerifyRequest) -> dict:
-    # MOCK: real version verifies the signed nonce and mints a JWT.
-    return {"token": "mock-jwt-" + secrets.token_hex(8), "wallet": req.wallet}
+    try:
+        token = auth_service.verify_and_mint(req.wallet, req.signature)
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return {"token": token, "wallet": req.wallet}
 
 
 # --- desktop pairing ------------------------------------------------------
 
+class PairApproveRequest(BaseModel):
+    wallet: str
+
+
 @app.post("/devices/pair")
 def devices_pair() -> dict:
-    # MOCK: real version issues a code, user approves on web with their wallet,
-    # app polls this (or a /devices/pair/{code}) until it receives a device token.
-    return {
-        "code": secrets.token_hex(3).upper(),
-        "device_token": "mock-device-" + secrets.token_hex(8),
-        "status": "approved",  # real flow starts as "pending"
-    }
+    return pairing_store.create().as_response()
+
+
+@app.get("/devices/pair/{code}")
+def devices_pair_status(code: str) -> dict:
+    session = pairing_store.get(code)
+    if session is None:
+        raise HTTPException(status_code=404, detail="pairing code not found")
+    return session.as_response()
+
+
+@app.post("/devices/pair/{code}/approve")
+def devices_pair_approve(code: str, req: PairApproveRequest) -> dict:
+    session = pairing_store.approve(code, req.wallet)
+    if session is None:
+        raise HTTPException(status_code=404, detail="pairing code not found")
+    if session.status == "expired":
+        raise HTTPException(status_code=410, detail="pairing code expired")
+    return session.as_response()
 
 
 # --- worker loop ----------------------------------------------------------
 
+class JobCreateRequest(BaseModel):
+    job_type: str = "segmentation"
+    input_url: str = "mock://flood-watch/tile-batch.tif"
+    total_units: int = Field(default=6, ge=1)
+    requested_chunks: int = Field(default=6, ge=1)
+
+
 class MetricSample(BaseModel):
     worker_id: str
     job_id: str
-    gpu_util_pct: float
-    vram_used_mb: int
-    cost_usd: float
-    ts: str | None = None
+    gpu_util_pct: float = Field(ge=0, le=100)
+    vram_used_mb: int = Field(ge=0)
+    cost_usd: float = Field(ge=0)
+    ts: datetime | None = None
+
+
+@app.post("/jobs")
+def create_job(req: JobCreateRequest) -> dict:
+    job = job_queue.create_job(
+        job_type=req.job_type,
+        input_url=req.input_url,
+        total_units=req.total_units,
+        requested_chunks=req.requested_chunks,
+    )
+    return {
+        "job_id": job.job_id,
+        "job_type": job.job_type,
+        "status": "queued",
+        "chunk_count": len(job.chunk_ids),
+    }
 
 
 @app.post("/workers/{worker_id}/claim")
 def claim_chunk(worker_id: str) -> dict:
-    # MOCK: real version pops the next pending chunk from the job queue.
+    job_queue.ensure_demo_job()
+    chunk = job_queue.claim_next(worker_id)
+    if chunk is None:
+        return {
+            "worker_id": worker_id,
+            "chunk_id": "",
+            "job_id": "",
+            "job_type": "idle",
+            "input_url": "",
+        }
+
     return {
         "worker_id": worker_id,
-        "chunk_id": "chunk-" + secrets.token_hex(4),
-        "job_id": "job-demo",
-        "job_type": "segmentation",
-        "input_url": "mock://tile-0.tif",
+        "chunk_id": chunk.chunk_id,
+        "job_id": chunk.job_id,
+        "job_type": chunk.job_type,
+        "input_url": chunk.input_url,
     }
 
 
 @app.post("/metrics")
 def post_metrics(sample: MetricSample) -> dict:
-    # MOCK: real version inserts into the Tiger Data gpu_metrics hypertable.
-    return {"accepted": True, "ts": sample.ts or _now()}
+    ts = metrics_repo.record_metric(
+        worker_id=sample.worker_id,
+        job_id=sample.job_id,
+        gpu_util_pct=sample.gpu_util_pct,
+        vram_used_mb=sample.vram_used_mb,
+        cost_usd=sample.cost_usd,
+        ts=sample.ts,
+    )
+    return {"accepted": True, "ts": ts.isoformat()}
 
 
 @app.post("/chunks/{chunk_id}/complete")
 def complete_chunk(chunk_id: str) -> dict:
-    # MOCK: real version marks the chunk done and stores the result pointer.
+    chunk = job_queue.complete(chunk_id)
+    if chunk is None:
+        raise HTTPException(status_code=404, detail="chunk not found")
     return {"chunk_id": chunk_id, "status": "complete"}
 
 
@@ -123,16 +186,4 @@ def complete_chunk(chunk_id: str) -> dict:
 
 @app.get("/earnings/{worker_id}")
 def earnings(worker_id: str) -> dict:
-    # MOCK: real version reads the usage_per_minute continuous aggregate.
-    now = int(time.time())
-    series = [
-        {"bucket": now - 60 * i, "cost_usd": round(0.02 * (10 - i), 4)}
-        for i in range(10, 0, -1)
-    ]
-    return {
-        "worker_id": worker_id,
-        "payout_wallet": "MockWa11etAddr1111111111111111111111111111",
-        "earnings_today_usd": round(sum(p["cost_usd"] for p in series), 4),
-        "earnings_total_usd": 1.2345,
-        "series": series,
-    }
+    return metrics_repo.earnings(worker_id)

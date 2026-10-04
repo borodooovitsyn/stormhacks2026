@@ -1,11 +1,12 @@
-.PHONY: setup api worker test lint db clean
+.PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc
 
 VENV = .venv
+PYTHON ?= python3.12
 PY = $(VENV)/bin/python
 PIP = $(VENV)/bin/pip
 
 setup:  ## create venv and install deps
-	python3 -m venv $(VENV)
+	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -e ".[dev]"
 	@echo "Done. Run: source $(VENV)/bin/activate"
@@ -13,8 +14,17 @@ setup:  ## create venv and install deps
 api:  ## run the FastAPI backend (docs at http://localhost:8000/docs)
 	$(VENV)/bin/uvicorn services.api.app.main:app --reload --port 8000
 
-worker:  ## run the GPU worker (fake metrics without a GPU) -- stub until services/worker lands
-	@echo "worker not implemented yet (commit #6). Owner: desktop/worker person."
+worker:  ## run the GPU worker (fake metrics, needs `make api` running)
+	$(VENV)/bin/python -m services.worker
+
+whisper-cpu:  ## build the CPU whisper image (any laptop)
+	docker build -t gpu-share/whisper:cpu services/worker/images/whisper
+
+whisper-cuda:  ## build the GPU whisper image (ROG / NVIDIA box)
+	docker build -f services/worker/images/whisper/Dockerfile.cuda -t gpu-share/whisper:cuda services/worker/images/whisper
+
+imageproc:  ## build the demo image-processing workload (proves any image runs)
+	docker build -t gpu-share/imageproc:cpu services/worker/images/imageproc
 
 test:  ## run the test suite
 	$(VENV)/bin/pytest -q
@@ -23,7 +33,7 @@ lint:  ## lint and format-check
 	$(VENV)/bin/ruff check .
 
 db:  ## start local TimescaleDB (Tiger Data compatible) -- stub until db/ lands
-	@echo "db not implemented yet (commit #8). Owner: backend person."
+	docker compose up -d db
 
 clean:
 	rm -rf $(VENV) .pytest_cache **/__pycache__
