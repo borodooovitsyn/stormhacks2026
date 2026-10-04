@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Protocol
 
 import httpx
 
@@ -44,3 +45,47 @@ class EarningsResponse:
             )
             for item in self.series
         ]
+
+
+class UsageSource(Protocol):
+    async def get_usage(
+        self,
+        worker_id: str,
+    ) -> list[UsageRecord]:
+        ...
+
+
+class HttpUsageSource:
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000",
+    ) -> None:
+        self.client = httpx.AsyncClient(
+            base_url=base_url,
+            timeout=10.0,
+        )
+
+    async def get_usage(
+        self,
+        worker_id: str,
+    ) -> list[UsageRecord]:
+        response = await self.client.get(
+            f"/earnings/{worker_id}"
+        )
+
+        response.raise_for_status()
+
+        earnings = EarningsResponse.from_dict(
+            response.json()
+        )
+
+        if earnings.worker_id != worker_id:
+            raise ValueError(
+                f"Requested worker {worker_id}, "
+                f"but backend returned {earnings.worker_id}"
+            )
+
+        return earnings.to_usage_records()
+
+    async def close(self) -> None:
+        await self.client.aclose()

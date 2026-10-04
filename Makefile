@@ -1,7 +1,7 @@
 .PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda imageproc mps-on
 
 VENV = .venv
-PYTHON ?= python3.12
+PYTHON ?= python3.13.7
 PY = $(VENV)/bin/python
 PIP = $(VENV)/bin/pip
 
