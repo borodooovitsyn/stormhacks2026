@@ -64,7 +64,7 @@ export function Tooltip({
         onFocus={() => setOpen(true)}
         onBlur={close}
         onClick={() => setOpen((o) => !o)}
-        className="cursor-help underline decoration-muted decoration-dotted underline-offset-4 transition-colors hover:decoration-accent focus-visible:decoration-accent"
+        className="underline decoration-muted decoration-dotted underline-offset-4 transition-colors hover:decoration-accent focus-visible:decoration-accent"
       >
         {children}
       </span>
