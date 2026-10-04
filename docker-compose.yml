@@ -1,0 +1,21 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    container_name: gpu-share-timescaledb
+    environment:
+      POSTGRES_DB: gpushare
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "${DATABASE_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gpushare"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:

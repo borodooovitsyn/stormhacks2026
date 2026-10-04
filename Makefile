@@ -1,11 +1,12 @@
 .PHONY: setup api worker test lint db clean whisper-cpu whisper-cuda
 
 VENV = .venv
+PYTHON ?= python3.12
 PY = $(VENV)/bin/python
 PIP = $(VENV)/bin/pip
 
 setup:  ## create venv and install deps
-	python3 -m venv $(VENV)
+	$(PYTHON) -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -e ".[dev]"
 	@echo "Done. Run: source $(VENV)/bin/activate"
@@ -29,7 +30,7 @@ lint:  ## lint and format-check
 	$(VENV)/bin/ruff check .
 
 db:  ## start local TimescaleDB (Tiger Data compatible) -- stub until db/ lands
-	@echo "db not implemented yet (commit #8). Owner: backend person."
+	docker compose up -d db
 
 clean:
 	rm -rf $(VENV) .pytest_cache **/__pycache__

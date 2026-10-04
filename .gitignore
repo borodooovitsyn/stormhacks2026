@@ -9,6 +9,7 @@ CLAUDE.local.md
 *.md
 !README.md
 !**/README.md
+CODEX_ACTION_LOG.md
 
 # --- OS / editors ---
 .DS_Store
