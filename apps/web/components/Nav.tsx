@@ -21,6 +21,11 @@ const LINKS = [
   { href: "/download", label: "Get the app" },
 ];
 
+function avatarLabel(email?: string | null, name?: string | null) {
+  const label = name?.trim() || email?.trim() || "Account";
+  return label.slice(0, 1).toUpperCase();
+}
+
 export function Nav() {
   const pathname = usePathname();
   const { connected } = useWallet();
@@ -68,13 +73,14 @@ export function Nav() {
           )}
           {accountStatus === "loading" ? (
             <div className="skeleton h-[38px] w-24" />
-          ) : account?.user ? (
+          ) : accountStatus === "authenticated" && account?.user ? (
             <Link
               href="/account"
-              className="max-w-36 truncate text-sm font-medium text-text hover:text-accent"
+              aria-label={`Account ${account.user.email ?? ""}`.trim()}
+              className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border border-accent/60 bg-accent text-sm font-bold text-accent-ink shadow-[0_0_20px_rgba(61,255,114,0.18)] transition-colors hover:bg-accent-hover"
               title={account.user.email ?? "Account"}
             >
-              {account.user.email ?? "Account"}
+              {avatarLabel(account.user.email, account.user.name)}
             </Link>
           ) : (
             <Link

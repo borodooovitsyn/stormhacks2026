@@ -1,6 +1,6 @@
 # CoreWhore Web
 
-Next.js client for GPU Share, including Auth.js accounts with Resend magic-link sign-in and a separate Solana wallet verification flow.
+Next.js client for GPU Share, including password accounts with Resend email verification and a separate Solana wallet verification flow.
 
 ## Getting Started
 
@@ -21,8 +21,9 @@ Required authentication variables:
 - `AUTH_DATABASE_URL`: PostgreSQL connection used for accounts, sessions, and verification tokens.
 - `AUTH_RESEND_KEY`: Resend API key.
 - `AUTH_EMAIL_FROM`: sender on a domain verified in Resend.
+- `NEXT_PUBLIC_APP_URL`: public web origin used in registration verification links.
 
-Email sign-in creates the account only after the user clicks the one-time link. The existing Solana wallet flow remains separate and verifies wallet ownership for API and payment operations.
+Registration stores a `scrypt` password hash and sends a one-time Resend link. Password sign-in is enabled only after the email is verified. The existing Solana wallet flow remains separate and verifies wallet ownership for API and payment operations.
 
 Google and GitHub can be added later as Auth.js providers without changing the account tables.
 

@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
     image TEXT
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
 CREATE TABLE IF NOT EXISTS accounts (
     id SERIAL PRIMARY KEY,
     "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -36,6 +38,15 @@ CREATE TABLE IF NOT EXISTS verification_token (
     PRIMARY KEY (identifier, token)
 );
 
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts ("userId");
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions ("userId");
 CREATE INDEX IF NOT EXISTS idx_verification_token_expires ON verification_token (expires);
+CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_expires ON email_verification_tokens (expires);

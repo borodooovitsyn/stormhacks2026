@@ -1,50 +1,57 @@
 import NextAuth from "next-auth";
-import Resend from "next-auth/providers/resend";
+import Credentials from "next-auth/providers/credentials";
 import PostgresAdapter from "@auth/pg-adapter";
-import { Pool } from "pg";
-
-const globalForAuth = globalThis as typeof globalThis & {
-  authPool?: Pool;
-};
-
-const resendApiKey = process.env.AUTH_RESEND_KEY?.trim();
-export const isResendConfigured = Boolean(
-  resendApiKey && resendApiKey !== "re_your_api_key" && resendApiKey !== "re_replace_me",
-);
-
-const connectionString =
-  process.env.AUTH_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5433/gpushare";
-
-const pool =
-  globalForAuth.authPool ??
-  new Pool({
-    connectionString,
-    max: 5,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 2_000,
-  });
-
-if (process.env.NODE_ENV !== "production") globalForAuth.authPool = pool;
+import { authPool } from "@/lib/auth-db";
+import { verifyPassword } from "@/lib/password";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PostgresAdapter(pool),
-  providers: isResendConfigured
-    ? [
-        Resend({
-          apiKey: resendApiKey,
-          from: process.env.AUTH_EMAIL_FROM ?? "CoreWhore <onboarding@resend.dev>",
-          maxAge: 10 * 60,
-        }),
-      ]
-    : [],
+  adapter: PostgresAdapter(authPool),
+  providers: [
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const email = typeof credentials.email === "string" ? credentials.email.trim().toLowerCase() : "";
+        const password = typeof credentials.password === "string" ? credentials.password : "";
+        if (!email || !password) return null;
+
+        const result = await authPool.query<{
+          id: number;
+          email: string;
+          name: string | null;
+          password_hash: string | null;
+          emailVerified: Date | null;
+        }>(
+          'SELECT id, email, name, password_hash, "emailVerified" FROM users WHERE LOWER(email) = $1',
+          [email],
+        );
+        const user = result.rows[0];
+        if (!user?.password_hash || !user.emailVerified) return null;
+        if (!(await verifyPassword(password, user.password_hash))) return null;
+
+        return { id: String(user.id), email: user.email, name: user.name };
+      },
+    }),
+  ],
   pages: {
     signIn: "/sign-in",
-    verifyRequest: "/sign-in/verify",
     error: "/sign-in",
   },
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
     updateAge: 24 * 60 * 60,
+  },
+  callbacks: {
+    jwt({ token, user }) {
+      if (user?.id) token.sub = user.id;
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user && token.sub) session.user.id = token.sub;
+      return session;
+    },
   },
 });

@@ -1,6 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import nextEnv from "@next/env";
 import pg from "pg";
+
+const { loadEnvConfig } = nextEnv;
+loadEnvConfig(process.cwd());
 
 const databaseUrl = process.env.AUTH_DATABASE_URL;
 
