@@ -88,7 +88,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSigningIn(false);
     }
-  }, [publicKey, signMessage]);
+  }, [account, publicKey, signMessage]);
 
   const signOut = useCallback(() => {
     storeSession(null);

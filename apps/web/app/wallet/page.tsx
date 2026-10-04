@@ -13,14 +13,28 @@ export default function WalletPage() {
   const [walletSol, setWalletSol] = useState<number | "error" | null>(null);
   const [payouts, setPayouts] = useState<{ signature: string; amount_sol: number; ts: number }[]>([]);
   const [copied, setCopied] = useState(false);
+  const [nowSeconds, setNowSeconds] = useState<number | null>(null);
 
   // Re-read the linked wallet (set by the form) so the page updates after linking.
   const refresh = useCallback(() => setAddress(getSession()?.wallet ?? null), []);
   useEffect(() => {
-    refresh();
+    const initial = window.setTimeout(refresh, 0);
     const id = setInterval(refresh, 1500);
-    return () => clearInterval(id);
+    return () => {
+      window.clearTimeout(initial);
+      clearInterval(id);
+    };
   }, [refresh]);
+
+  useEffect(() => {
+    const update = () => setNowSeconds(Math.floor(Date.now() / 1000));
+    const initial = window.setTimeout(update, 0);
+    const interval = window.setInterval(update, 60_000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!address) return;
@@ -124,7 +138,9 @@ export default function WalletPage() {
                 >
                   {shortAddr(p.signature)}
                 </a>
-                <span className="text-xs text-muted">{Math.round((Date.now() / 1000 - p.ts) / 60)} min ago</span>
+                <span className="text-xs text-muted">
+                  {nowSeconds === null ? "—" : `${Math.max(0, Math.round((nowSeconds - p.ts) / 60))} min ago`}
+                </span>
                 <span className="num font-medium text-accent">+{sol(p.amount_sol)}</span>
               </li>
             ))}

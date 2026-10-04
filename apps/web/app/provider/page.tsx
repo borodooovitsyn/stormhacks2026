@@ -3,12 +3,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, desktopDownloadUrl, getSession } from "@/lib/api";
 import { usePolling } from "@/lib/usePolling";
-import { SAMPLE_PAYOUTS } from "@/lib/pending";
 import { EarningsChart } from "@/components/EarningsChart";
-import { Card, EmptyState, LiveBadge, PageHeader, PreviewBadge, Stat, sol, shortAddr } from "@/components/ui";
+import { Card, EmptyState, LiveBadge, PageHeader, Stat, sol, shortAddr } from "@/components/ui";
 
 export default function ProviderPage() {
   const [workerId, setWorkerId] = useState("demo-worker");
+  const [nowSeconds, setNowSeconds] = useState<number | null>(null);
+
+  useEffect(() => {
+    const update = () => setNowSeconds(Math.floor(Date.now() / 1000));
+    const initial = window.setTimeout(update, 0);
+    const interval = window.setInterval(update, 60_000);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   // Resolve the signed-in wallet to its paired worker so earnings match the desktop.
   useEffect(() => {
@@ -131,7 +141,9 @@ export default function ProviderPage() {
                   >
                     {shortAddr(p.signature)}
                   </a>
-                  <span className="text-xs text-muted">{Math.round((Date.now() / 1000 - p.ts) / 60)} min ago</span>
+                  <span className="text-xs text-muted">
+                    {nowSeconds === null ? "—" : `${Math.max(0, Math.round((nowSeconds - p.ts) / 60))} min ago`}
+                  </span>
                   <span className="num font-medium text-accent">+{sol(p.amount_sol)}</span>
                 </li>
               ))}
