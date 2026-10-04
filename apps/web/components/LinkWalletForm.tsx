@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { getSession } from "@/lib/api";
 import { signInWithSecretKey } from "@/lib/walletKey";
@@ -11,8 +11,12 @@ export function LinkWalletForm() {
   const [secret, setSecret] = useState("");
   const [status, setStatus] = useState<"idle" | "working" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [linked, setLinked] = useState<string | null>(null);
 
-  const linked = getSession()?.wallet ?? null;
+  useEffect(() => {
+    const initial = window.setTimeout(() => setLinked(getSession()?.wallet ?? null), 0);
+    return () => window.clearTimeout(initial);
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
