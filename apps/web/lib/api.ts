@@ -127,6 +127,11 @@ export const api = {
       body: JSON.stringify({ wallet, signature }),
     }),
   pair: () => request<PairResult>("/devices/pair", { method: "POST" }),
+  approvePair: (code: string, wallet: string) =>
+    request<PairResult>(`/devices/pair/${encodeURIComponent(code)}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ wallet }),
+    }),
   earnings: (workerId: string) =>
     request<Earnings>(`/earnings/${encodeURIComponent(workerId)}`),
   createJob: (job: JobCreateInput) =>

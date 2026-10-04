@@ -1,5 +1,5 @@
 // Electron main process: window + spawns the existing python worker.
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
 const { spawn, execSync } = require("child_process");
 
@@ -24,9 +24,12 @@ function createWindow() {
 
 ipcMain.handle("config:get", () => ({
   apiUrl: process.env.API_URL || "http://localhost:8000",
+  webUrl: process.env.WEB_URL || "http://localhost:3000",
   workerId: process.env.WORKER_ID || "worker-local",
   inputDir: process.env.INPUT_DIR || "",
 }));
+
+ipcMain.handle("open:external", (_e, url) => shell.openExternal(url));
 
 ipcMain.handle("gpu:status", () => {
   try {

@@ -60,7 +60,14 @@ function onApproved() {
 }
 
 $("open-web").onclick = () => {
-  $("pair-status").textContent = "Approve code " + (pairCode || "——") + " on the website with your wallet.";
+  if (!pairCode) {
+    $("pair-status").textContent = "Generate a code first.";
+    return;
+  }
+  const url = new URL("/download", cfg.webUrl || "http://localhost:3000");
+  url.searchParams.set("code", pairCode);
+  window.desktop.openExternal(url.toString());
+  $("pair-status").textContent = "Browser opened. Approve code " + pairCode + " on the website.";
 };
 
 // Dev-only: simulate the website approving this device, for standalone testing against P1.
