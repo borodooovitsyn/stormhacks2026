@@ -1,6 +1,6 @@
 {
   "name": "gpu-share-desktop",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "CoreShare provider desktop app (Electron)",
   "author": "CoreShare",
   "main": "main.js",
@@ -8,9 +8,10 @@
     "start": "electron .",
     "test": "node --test",
     "build:worker": "bash ../../scripts/build-worker.sh",
-    "build:worker:win": "powershell -ExecutionPolicy Bypass -File ../../scripts/build-worker.ps1",
+    "build:worker:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../scripts/build-worker.ps1",
     "pack:mac": "npm run build:worker && electron-builder --mac",
-    "pack:win": "npm run build:worker:win && electron-builder --win",
+    "pack:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../scripts/build-windows.ps1",
+    "pack:win:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../scripts/build-windows.ps1 -SmokeTest",
     "dist": "electron-builder"
   },
   "build": {
@@ -23,7 +24,6 @@
       { "from": "../../scripts/setup-wsl.sh", "to": "setup/setup-wsl.sh" },
       { "from": "../../scripts/setup-mac.sh", "to": "setup/setup-mac.sh" }
     ],
-    "win": { "target": "nsis" },
     "mac": { "target": "dmg", "category": "public.app-category.utilities" },
     "linux": { "target": "AppImage", "category": "Utility" }
   },

@@ -1,16 +1,4 @@
-// UI-only stand-ins for endpoints the web client needs but the API contract
-// does not have yet. NOT a contract: the shapes below are what the UI wants,
-// to be proposed to the backend owner. Pages that use these show a
-// "Preview data" badge so nobody mistakes them for real numbers.
-//
-// Missing endpoints / fields (ask backend owner):
-//   POST /jobs                        -> { job_id }, body includes { image, input_url, job_type }
-//   GET  /jobs/{id}                   -> job status, chunks per worker, cost, result_urls
-//   POST /jobs/upload                 -> input bundle URL for /input
-//   POST /wallet/deposit              -> escrow deposit instructions
-//
-// Worker contract:
-//   container reads /input and writes /output; worker runs it sandboxed.
+// Display metadata and pricing estimates. Job state and artifacts come from the API.
 
 export type Payout = {
   id: string;
@@ -35,15 +23,17 @@ export type WorkloadMeta = {
 export type Chunk = {
   id: string;
   worker: string;
-  status: "queued" | "running" | "done";
+  status: "queued" | "running" | "done" | "failed";
   progress: number;
   outputName: string;
+  resultUrl?: string | null;
+  error?: string | null;
 };
 
 export const WORKLOADS: Record<WorkloadPreset, WorkloadMeta> = {
   transcribe: {
     label: "Transcribe",
-    image: "gpu-share/whisper:cpu",
+    image: "gpu-share/whisper:cuda",
     unit: "audio file",
     chunkSize: 1,
     ratePerUnit: 0.02,

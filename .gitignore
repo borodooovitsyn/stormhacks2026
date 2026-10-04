@@ -82,4 +82,5 @@ pgdata/
 apps/desktop/node_modules/
 apps/desktop/bin/
 apps/desktop/dist/
+apps/desktop/install-smoke/
 build/

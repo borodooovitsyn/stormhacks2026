@@ -2,6 +2,9 @@ from base58 import b58encode
 from fastapi.testclient import TestClient
 from nacl.signing import SigningKey
 
+from services.api.app import main as api_main
+from services.api.app.artifacts import ArtifactStore
+from services.api.app.jobs import InMemoryJobQueue
 from services.api.app.main import app
 
 client = TestClient(app)
@@ -13,8 +16,10 @@ def test_health():
     assert r.json()["status"] == "ok"
 
 
-def test_contract_endpoints_respond():
-    """Every contract endpoint answers with the agreed shape (mock data)."""
+def test_contract_endpoints_respond(monkeypatch, tmp_path):
+    """Every contract endpoint answers with real job and artifact state."""
+    monkeypatch.setattr(api_main, "job_queue", InMemoryJobQueue())
+    monkeypatch.setattr(api_main, "artifact_store", ArtifactStore(tmp_path))
     signing_key = SigningKey.generate()
     wallet = b58encode(bytes(signing_key.verify_key)).decode("ascii")
     nonce = client.post("/auth/nonce", json={"wallet": wallet}).json()["nonce"]
@@ -25,6 +30,17 @@ def test_contract_endpoints_respond():
     ).json()["token"]
     assert client.post("/devices/pair").json()["device_token"]
 
+    upload = client.post("/uploads?filename=input.mp3", content=b"audio-bytes").json()
+    client.post(
+        "/jobs",
+        json={
+            "job_type": "whisper",
+            "image": "gpu-share/whisper:cuda",
+            "input_url": upload["input_url"],
+            "total_units": 1,
+            "requested_chunks": 1,
+        },
+    ).raise_for_status()
     claim = client.post("/workers/w1/claim").json()
     assert claim["chunk_id"] and claim["job_type"]
 
@@ -32,6 +48,11 @@ def test_contract_endpoints_respond():
               "vram_used_mb": 4096, "cost_usd": 0.01}
     assert client.post("/metrics", json=metric).json()["accepted"] is True
 
+    result = client.post(
+        f"/chunks/{claim['chunk_id']}/result?filename=result.zip",
+        content=b"zip-bytes",
+    )
+    assert result.status_code == 200
     assert client.post(f"/chunks/{claim['chunk_id']}/complete").json()["status"] == "complete"
 
     earn = client.get("/earnings/w1").json()
@@ -44,7 +65,7 @@ def test_job_status_includes_container_image():
         json={
             "job_type": "blender",
             "image": "gpu-share/blender:cuda",
-            "input_url": "mock://demo/scene.blend",
+            "input_url": "/uploads/scene-upload",
             "total_units": 20,
             "requested_chunks": 4,
         },
@@ -57,10 +78,14 @@ def test_job_status_includes_container_image():
     assert status["chunks"][0]["image"] == "gpu-share/blender:cuda"
 
 
-def test_desktop_download_endpoint_serves_zip():
+def test_desktop_download_endpoint_serves_windows_app(monkeypatch, tmp_path):
+    installer = tmp_path / "CoreShare-0.1.1-Windows-x64-Portable.exe"
+    installer.write_bytes(b"MZ-fake-installer")
+    monkeypatch.setenv("DESKTOP_DOWNLOAD_PATH", str(installer))
+
     response = client.get("/downloads/desktop")
 
     assert response.status_code == 200
-    assert response.headers["content-type"] == "application/zip"
-    assert "gpu-share-desktop.zip" in response.headers["content-disposition"]
-    assert response.content.startswith(b"PK")
+    assert response.headers["content-type"] == "application/vnd.microsoft.portable-executable"
+    assert "-Windows-x64-Portable.exe" in response.headers["content-disposition"]
+    assert response.content.startswith(b"MZ")

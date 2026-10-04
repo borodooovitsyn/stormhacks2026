@@ -15,7 +15,7 @@ setup:  ## create venv and install deps
 api:  ## run the FastAPI backend (docs at http://localhost:8000/docs)
 	$(VENV)/bin/uvicorn services.api.app.main:app --reload --port 8000
 
-worker:  ## run the GPU worker (fake metrics, needs `make api` running)
+worker:  ## run the real Docker worker (needs `make api` and a queued job)
 	$(VENV)/bin/python -m services.worker
 
 workers:  ## launch N workers to show one job sharded across GPUs (make workers N=3)
