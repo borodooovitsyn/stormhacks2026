@@ -75,9 +75,9 @@ test("dashboard renders live earnings without demo globals", async () => {
     await elements["pair-btn"].onclick();
     await new Promise((resolve) => setImmediate(resolve));
 
-    assert.equal(elements.today.textContent, "$1.2500");
-    assert.equal(elements.total.textContent, "$2.5000");
-    assert.equal(elements.permin.textContent, "$0.7500");
+    assert.equal(elements.today.textContent, "$1.250000");
+    assert.equal(elements.total.textContent, "$2.500000");
+    assert.equal(elements.permin.textContent, "$0.750000");
     assert.equal(elements.wallet.textContent, "12345678…klmnop");
     assert.match(elements.payouts.innerHTML, /No settled payouts yet/);
     assert.equal(elements.dashboard.classList.contains("hidden"), false);

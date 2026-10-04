@@ -49,7 +49,7 @@ def test_metrics_round_trip_through_timescaledb():
         assert metric[1] == 4096
         assert float(metric[2]) == pytest.approx(0.012345)
 
-        # A fresh repository has no in-memory copy, so this result must come from the aggregate.
+        # A fresh repository has no in-memory copy, so this result must come from TimescaleDB.
         earnings = MetricsRepository(
             database_url=database_url,
             payout_wallet="TestWallet",

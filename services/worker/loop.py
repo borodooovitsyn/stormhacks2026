@@ -34,7 +34,10 @@ def run_job_once(
         error = str(exc) or exc.__class__.__name__
     elapsed = clock() - started
     util, vram = sample()
-    cost = interval_cost(elapsed, rate_usd_per_hour, util)
+    # Providers reserve the GPU for the whole successful workload. A sample taken
+    # after Docker exits is useful telemetry, but often reads 0% and must not erase
+    # the billable execution time.
+    cost = interval_cost(elapsed, rate_usd_per_hour) if ok else 0.0
     client.report_metric(worker_id, chunk["job_id"], Sample(util, vram, cost))
     if ok:
         client.complete(chunk["chunk_id"])

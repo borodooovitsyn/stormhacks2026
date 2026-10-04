@@ -3,7 +3,7 @@ let api = null;
 let sharing = false;
 
 const $ = (id) => document.getElementById(id);
-const money = (n) => "$" + Number(n || 0).toFixed(4);
+const money = (n) => "$" + Number(n || 0).toFixed(6);
 const shortAddress = (address) => {
   if (!address) return "Not linked";
   if (address.length <= 16) return address;

@@ -1,4 +1,4 @@
-"""Usage metering: bill on measured GPU utilization over time, not claims."""
+"""Usage metering for billable worker execution time."""
 
 from __future__ import annotations
 

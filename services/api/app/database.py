@@ -138,15 +138,14 @@ class MetricsRepository:
             return None
 
         with conn, conn.cursor(row_factory=dict_row) as cur:
-            self._refresh_usage_per_minute(cur)
             cur.execute(
                 """
                     SELECT
-                        EXTRACT(EPOCH FROM bucket)::BIGINT AS bucket,
+                        EXTRACT(EPOCH FROM date_trunc('minute', ts))::BIGINT AS bucket,
                         ROUND(SUM(cost_usd)::NUMERIC, 6)::FLOAT AS cost_usd
-                    FROM usage_per_minute
+                    FROM gpu_metrics
                     WHERE worker_id = %s
-                    GROUP BY bucket
+                    GROUP BY date_trunc('minute', ts)
                     ORDER BY bucket
                     """,
                 (worker_id,),
@@ -159,7 +158,7 @@ class MetricsRepository:
             cur.execute(
                 """
                     SELECT COALESCE(SUM(cost_usd), 0)::FLOAT AS total
-                    FROM usage_per_minute
+                    FROM gpu_metrics
                     WHERE worker_id = %s
                     """,
                 (worker_id,),
@@ -169,9 +168,12 @@ class MetricsRepository:
             cur.execute(
                 """
                     SELECT COALESCE(SUM(cost_usd), 0)::FLOAT AS today
-                    FROM usage_per_minute
+                    FROM gpu_metrics
                     WHERE worker_id = %s
-                      AND bucket >= date_trunc('day', now() AT TIME ZONE 'utc')
+                      AND ts >= (
+                          date_trunc('day', now() AT TIME ZONE 'UTC')
+                          AT TIME ZONE 'UTC'
+                      )
                     """,
                 (worker_id,),
             )
@@ -184,23 +186,6 @@ class MetricsRepository:
             "earnings_total_usd": round(total, 6),
             "series": series,
         }
-
-    @staticmethod
-    def _refresh_usage_per_minute(cur) -> None:
-        try:
-            cur.execute(
-                """
-                CALL refresh_continuous_aggregate(
-                    'usage_per_minute',
-                    now() - INTERVAL '2 days',
-                    now()
-                )
-                """
-            )
-        except psycopg.Error:
-            # Local dev should still be able to read the last materialized data
-            # if a refresh policy or Timescale permissions get in the way.
-            cur.connection.rollback()
 
     def _earnings_memory(self, worker_id: str) -> dict[str, Any]:
         buckets: dict[int, Decimal] = defaultdict(lambda: Decimal(0))

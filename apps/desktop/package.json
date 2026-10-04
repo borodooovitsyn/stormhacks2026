@@ -1,6 +1,6 @@
 {
   "name": "gpu-share-desktop",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "CoreShare provider desktop app (Electron)",
   "author": "CoreShare",
   "main": "main.js",
