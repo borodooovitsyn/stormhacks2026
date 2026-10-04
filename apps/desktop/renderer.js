@@ -3,7 +3,12 @@ let api = null;
 let sharing = false;
 
 const $ = (id) => document.getElementById(id);
-const money = (n) => Number(n || 0).toFixed(4) + " SOL";
+const money = (n) => "$" + Number(n || 0).toFixed(4);
+const shortAddress = (address) => {
+  if (!address) return "Not linked";
+  if (address.length <= 16) return address;
+  return `${address.slice(0, 8)}…${address.slice(-6)}`;
+};
 
 async function init() {
   cfg = await window.desktop.getConfig();
@@ -132,20 +137,17 @@ async function enterDashboard() {
 }
 
 function renderPayouts() {
-  $("payouts").innerHTML = SAMPLE_PAYOUTS.map(
-    (p) =>
-      `<li><span class="sig">${p.sig}</span><span class="ago">${p.ago} min ago</span><span class="amt num">+${usd(p.amount)}</span></li>`,
-  ).join("");
+  $("payouts").innerHTML = '<li><span class="sig">No settled payouts yet</span></li>';
 }
 
 async function refreshEarnings() {
   try {
     const e = await api.earnings(cfg.workerId);
     const series = (e.series || []).map((p) => p.cost_usd);
-    $("today").textContent = usd(e.earnings_today_usd);
-    $("total").textContent = usd(e.earnings_total_usd);
-    $("permin").textContent = usd(series.at(-1) || 0);
-    $("wallet").textContent = shortAddr(e.payout_wallet);
+    $("today").textContent = money(e.earnings_today_usd);
+    $("total").textContent = money(e.earnings_total_usd);
+    $("permin").textContent = money(series.at(-1) || 0);
+    $("wallet").textContent = shortAddress(e.payout_wallet);
     $("wallet").title = e.payout_wallet || "";
     drawArea(series);
   } catch (_e) {
